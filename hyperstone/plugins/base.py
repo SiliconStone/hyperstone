@@ -43,7 +43,12 @@ class Plugin:
         for loaded in Plugin.get_all_loaded(plugin, emu):
             return loaded
         new_plug: Plugin = plugin()
-        setattr(emu.settings, IMPORTED_PLUGIN_NAME.format(name=plugin.__name__), new_plug)
+
+        if isinstance(emu.settings, list):
+            emu.settings.append(new_plug)
+        else:
+            setattr(emu.settings, IMPORTED_PLUGIN_NAME.format(name=plugin.__name__), new_plug)
+
         new_plug.prepare(emu)
         return new_plug
 
