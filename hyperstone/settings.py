@@ -1,5 +1,5 @@
 from .plugins import Plugin
-from typing import Type, Union
+from typing import Iterable
 
 
 class MetaSetting(type):
@@ -31,4 +31,4 @@ class Settings(metaclass=MetaSetting):
     pass
 
 
-SettingsType = Union[Type[Settings], Settings]
+SettingsType = Iterable[Plugin]

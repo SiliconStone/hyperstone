@@ -3,7 +3,7 @@ from ..util import log
 
 from abc import abstractmethod, ABC
 
-from typing import List, Optional, Type, TypeVar, TYPE_CHECKING
+from typing import List, Optional, Iterable, Type, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..settings import SettingsType
@@ -40,14 +40,18 @@ class Plugin:
 
     @staticmethod
     def require(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> _PLUGIN_TYPE:
-        for has_plugin in emu.settings:
-            if type(has_plugin).__name__ == plugin.__name__:
-                return has_plugin
-
+        for loaded in Plugin.get_all_loaded(plugin, emu):
+            return loaded
         new_plug: Plugin = plugin()
         setattr(emu.settings, IMPORTED_PLUGIN_NAME.format(name=plugin.__name__), new_plug)
         new_plug.prepare(emu)
         return new_plug
+
+    @staticmethod
+    def get_all_loaded(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> Iterable[_PLUGIN_TYPE]:
+        for has_plugin in emu.settings:
+            if isinstance(has_plugin, plugin):
+                yield has_plugin
 
 
 class RunnerPlugin(Plugin, ABC):

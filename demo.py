@@ -90,5 +90,26 @@ class Settings(hs.Settings):
     ENTRY = Entrypoint(0x40000000)
 
 
+SIMPLE_SETTINGS = [
+    SetupMemory(),
+
+    SegmentPlugin(
+        SegmentDecl(
+            'test1',
+            0x40000000,
+            0x1000,
+        ),
+        SegmentDecl(
+            'test2',
+            0x41000000,
+            0x1000,
+            ms.AccessType.RX
+        )
+    ),
+
+    Entrypoint(0x40000000),
+]
+
+
 if __name__ == '__main__':
-    hs.start(ms.ARCH_ARM, Settings)
+    hs.start(ms.ARCH_ARM, SIMPLE_SETTINGS)
