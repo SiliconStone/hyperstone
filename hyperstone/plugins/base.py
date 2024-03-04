@@ -1,10 +1,8 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
+from typing import Optional, Iterable, Type, TypeVar
 
-from ..emulator import HyperEmu
-from ..util import log
-
-from typing import Optional, Iterable, Type, TypeVar, TYPE_CHECKING
-
+from hyperstone.emulator import HyperEmu
+from hyperstone.util import log
 
 IMPORTED_PLUGIN_NAME = 'HYPERSTONE_REQUIRE__{name}_'
 
@@ -13,8 +11,12 @@ class Plugin:
     _INTERACT_TYPE = TypeVar('_INTERACT_TYPE')
     _PLUGIN_TYPE = TypeVar('_PLUGIN_TYPE', bound='Plugin')
 
+    @property
+    def plugin_name(self) -> str:
+        return type(self).__name__
+
     def __init__(self):
-        self.interact_queue = []
+        self._interact_queue = []
         self.emu: Optional[HyperEmu] = None
 
     @property
@@ -22,15 +24,18 @@ class Plugin:
         return self.emu is not None
 
     def prepare(self, emu: HyperEmu):
+        if self.ready:
+            return
+
         self.emu = emu
-        self._handle_interact(*self.interact_queue)
-        self.interact_queue.clear()
+        self._handle_interact(*self._interact_queue)
+        self._interact_queue.clear()
 
     def interact(self, *objs: '_INTERACT_TYPE'):
         if self.ready:
             self._handle_interact(*objs)
         else:
-            self.interact_queue += objs
+            self._interact_queue += objs
 
     @abstractmethod
     def _handle_interact(self, *objs: '_INTERACT_TYPE'):
@@ -53,11 +58,11 @@ class Plugin:
     @staticmethod
     def get_all_loaded(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> Iterable[_PLUGIN_TYPE]:
         for has_plugin in emu.settings:
-            if isinstance(has_plugin, plugin):
+            if has_plugin.plugin_name == plugin.__name__:
                 yield has_plugin
 
 
-class RunnerPlugin(Plugin, ABC):
+class RunnerPlugin(Plugin):
     def run(self):
         if not self.ready:
             log.error('Attempted to call run too early!')

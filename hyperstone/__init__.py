@@ -1,12 +1,16 @@
-from .emulator import HyperEmu
-from .engine import start
-from .plugins import Plugin, RunnerPlugin
-from .settings import Settings, SettingsType
-from .util import log
+from hyperstone.emulator import HyperEmu
+from hyperstone.engine import start
+from hyperstone.plugins import Plugin, RunnerPlugin
+from hyperstone.settings import Settings, SettingsType
+from hyperstone.util import log
 
 __all__ = [
+    'HyperEmu',
+    'errors',
+    'start',
+    'plugins',
     'Plugin',
     'RunnerPlugin',
-    'HyperEmu',
     'Settings',
+    'log'
 ]

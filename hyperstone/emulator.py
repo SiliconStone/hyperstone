@@ -1,8 +1,9 @@
+from typing import TYPE_CHECKING
+
 import megastone as ms
-from typing import TYPE_CHECKING, Type, Union
 
 if TYPE_CHECKING:
-    from .settings import SettingsType
+    from hyperstone.settings import SettingsType
 
 
 class HyperEmu(ms.Emulator):

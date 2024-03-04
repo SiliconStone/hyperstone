@@ -1,9 +1,9 @@
 import megastone as ms
 
-from .emulator import HyperEmu
-from .plugins import RunnerPlugin
-from .settings import SettingsType
-from .util import log
+from hyperstone.emulator import HyperEmu
+from hyperstone.plugins import RunnerPlugin
+from hyperstone.settings import SettingsType
+from hyperstone.util import log
 
 
 def start(arch: ms.Architecture, settings: SettingsType) -> HyperEmu:
