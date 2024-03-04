@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import megastone as ms
+
 import hyperstone as hs
 from hyperstone import HyperEmu
 
@@ -109,7 +110,6 @@ SIMPLE_SETTINGS = [
 
     Entrypoint(0x40000000),
 ]
-
 
 if __name__ == '__main__':
     hs.start(ms.ARCH_ARM, SIMPLE_SETTINGS)

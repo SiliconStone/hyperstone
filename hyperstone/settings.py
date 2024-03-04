@@ -1,5 +1,6 @@
-from .plugins import Plugin
 from typing import Iterable
+
+from .plugins import Plugin
 
 
 class MetaSetting(type):

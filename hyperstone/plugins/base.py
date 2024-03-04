@@ -1,12 +1,10 @@
+from abc import abstractmethod, ABC
+
 from ..emulator import HyperEmu
 from ..util import log
 
-from abc import abstractmethod, ABC
+from typing import Optional, Iterable, Type, TypeVar, TYPE_CHECKING
 
-from typing import List, Optional, Iterable, Type, TypeVar, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..settings import SettingsType
 
 IMPORTED_PLUGIN_NAME = 'HYPERSTONE_REQUIRE__{name}_'
 
