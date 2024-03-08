@@ -10,7 +10,7 @@ from hyperstone.util import log
 
 
 @dataclass
-class SegmentDecl:
+class SegmentInfo:
     name: str
     address: int
     size: int
@@ -33,21 +33,21 @@ class RawStream:
 @dataclass
 class CodeSegment:
     stream: CodeStream
-    segment: SegmentDecl
+    segment: SegmentInfo
 
 
 @dataclass
 class RawSegment:
     stream: RawStream
-    segment: SegmentDecl
+    segment: SegmentInfo
 
 
 class MapSegment(Plugin):
-    def __init__(self, *segments: SegmentDecl):
+    def __init__(self, *segments: SegmentInfo):
         super().__init__()
         self._interact_queue += segments
 
-    def _handle_interact(self, *objs: SegmentDecl):
+    def _handle_interact(self, *objs: SegmentInfo):
         for seg in objs:
             log.info(f'Mapping segment {seg.name}: {seg}')
             self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms)
@@ -65,18 +65,18 @@ class SetupMemory(Plugin):
     def _handle_interact(self, *objs: Any):
         pass
 
-    def __init__(self, *,
+    def __init__(self,
                  support_base: int = SUPPORT_BASE,
                  support_size: int = SUPPORT_SIZE,
                  stack_base: int = STACK_BASE,
                  stack_size: int = STACK_SIZE):
         super().__init__()
-        self.support_segment = SegmentDecl(
+        self.support_segment = SegmentInfo(
             SetupMemory.HYPERSTONE_SUPPORT_NAME,
             support_base,
             support_size,
         )
-        self.stack_segment = SegmentDecl(
+        self.stack_segment = SegmentInfo(
             SetupMemory.HYPERSTONE_STACK_NAME,
             stack_base,
             stack_size,
