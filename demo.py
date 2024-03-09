@@ -37,7 +37,6 @@ SIMPLE_SETTINGS = [
     hs.plugins.emulation.FunctionEntrypoint(0x08000000),
 ]
 
-
 if __name__ == '__main__':
     emu = hs.start(ms.ARCH_ARM, SIMPLE_SETTINGS)
     hs.log.success(f'Retval {emu.regs.r0=:08X}')

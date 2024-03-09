@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional, Iterable, Type, TypeVar
+from typing import Optional, Iterable, Type, TypeVar, List, Any
 
 from hyperstone.emulator import HyperEmu
 from hyperstone.util import log
@@ -12,11 +12,12 @@ class Plugin:
     _PLUGIN_TYPE = TypeVar('_PLUGIN_TYPE', bound='Plugin')
 
     @property
-    def plugin_name(self) -> str:
-        return type(self).__name__
+    def plugin_identity(self) -> List[Type]:
+        return [type(self), Plugin]
 
-    def __init__(self):
+    def __init__(self, *args: List[Any]):
         self._interact_queue = []
+        self._interact_queue += args
         self.emu: Optional[HyperEmu] = None
 
     @property
@@ -58,7 +59,7 @@ class Plugin:
     @staticmethod
     def get_all_loaded(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> Iterable[_PLUGIN_TYPE]:
         for has_plugin in emu.settings:
-            if has_plugin.plugin_name == plugin.__name__:
+            if plugin in has_plugin.plugin_identity:
                 yield has_plugin
 
 

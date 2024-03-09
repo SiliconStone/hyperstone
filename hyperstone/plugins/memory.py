@@ -44,13 +44,13 @@ class RawSegment:
 
 class MapSegment(Plugin):
     def __init__(self, *segments: SegmentInfo):
-        super().__init__()
-        self._interact_queue += segments
+        super().__init__(*segments)
+        self._segments = []
 
     def _handle_interact(self, *objs: SegmentInfo):
         for seg in objs:
             log.info(f'Mapping segment {seg.name}: {seg}')
-            self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms)
+            self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
 
 
 class SetupMemory(Plugin):
@@ -90,8 +90,7 @@ class SetupMemory(Plugin):
 
 class WriteRaw(Plugin):
     def __init__(self, *args: RawStream):
-        super().__init__()
-        self._interact_queue += args
+        super().__init__(*args)
 
     def _handle_interact(self, *objs: RawStream):
         for obj in objs:
@@ -103,8 +102,7 @@ class WriteRaw(Plugin):
 
 class MapRaw(Plugin):
     def __init__(self, *args: RawSegment):
-        super().__init__()
-        self._interact_queue += args
+        super().__init__(*args)
         self.segment_plugin: Optional[MapSegment] = None
         self.write_plugin: Optional[WriteRaw] = None
         self.write_plugin_type = WriteRaw
@@ -131,8 +129,7 @@ class MapRaw(Plugin):
 
 class WriteCode(Plugin):
     def __init__(self, *args: CodeStream):
-        super().__init__()
-        self._interact_queue += args
+        super().__init__(*args)
 
     def _handle_interact(self, *objs: CodeStream):
         for obj in objs:
