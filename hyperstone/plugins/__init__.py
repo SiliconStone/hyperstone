@@ -1,4 +1,4 @@
-from hyperstone.plugins import base, consts, emulation, memory
+from hyperstone.plugins import base, consts, emulation
 from hyperstone.plugins.base import Plugin, RunnerPlugin
 
 __all__ = [
@@ -7,5 +7,4 @@ __all__ = [
     'base',
     'consts',
     'emulation',
-    'memory',
 ]

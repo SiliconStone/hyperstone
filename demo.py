@@ -1,10 +1,12 @@
 import megastone as ms
 
 import hyperstone as hs
-from hyperstone.plugins.memory import SegmentDecl, CodeSegment, CodeStream, RawSegment, RawStream
+import hyperstone.plugins.memory.map_code
+import hyperstone.plugins.memory.map_raw
+from hyperstone.plugins.memory import SegmentInfo, CodeSegment, CodeStream, RawSegment, RawStream
 
 SIMPLE_SETTINGS = [
-    hs.plugins.memory.MapCode(
+    hyperstone.plugins.memory.map_code.MapCode(
         CodeSegment(
             CodeStream(
                 assembly='''
@@ -13,7 +15,7 @@ SIMPLE_SETTINGS = [
                 BX      LR
                 ''',
             ),
-            SegmentDecl(
+            SegmentInfo(
                 name='test',
                 address=0x08000000,
                 size=0x400,
@@ -21,12 +23,12 @@ SIMPLE_SETTINGS = [
         )
     ),
 
-    hs.plugins.memory.MapRaw(
+    hyperstone.plugins.memory.map_raw.MapRaw(
         RawSegment(
             RawStream(
                 data=b'AAAA'
             ),
-            SegmentDecl(
+            SegmentInfo(
                 name='data',
                 address=0x04000000,
                 size=0x400,

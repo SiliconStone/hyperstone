@@ -6,7 +6,6 @@ from hyperstone.util import log
 
 __all__ = [
     'HyperEmu',
-    'errors',
     'start',
     'plugins',
     'Plugin',

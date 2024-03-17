@@ -1,2 +1,0 @@
-class HyperstoneError(Exception):
-    pass
