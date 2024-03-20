@@ -10,6 +10,7 @@ __all__ = [
     "MapRaw",
     "MapCode",
     "MapSegment",
+    "SegmentInfo",
     "SetupMemory",
     "RawStream",
     "CodeSegment",

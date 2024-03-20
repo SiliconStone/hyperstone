@@ -2,7 +2,7 @@ from hyperstone.emulator import HyperEmu
 from hyperstone.engine import start
 from hyperstone.plugins import Plugin, RunnerPlugin
 from hyperstone.settings import Settings, SettingsType
-from hyperstone.util import log
+from hyperstone.util import log, LazyResolver
 
 __all__ = [
     'HyperEmu',
@@ -11,5 +11,6 @@ __all__ = [
     'Plugin',
     'RunnerPlugin',
     'Settings',
-    'log'
+    'log',
+    'LazyResolver'
 ]

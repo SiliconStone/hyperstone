@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional, Callable, Any, Dict, Tuple
+from typing import Optional, Callable, Any, Dict, Tuple, Union
 
 import megastone as ms
 
@@ -12,10 +12,29 @@ from hyperstone.util import log
 @dataclass
 class HookType:
     name: str
-    address: int
     return_address: int
-    callback: Optional[Callable[[HyperEmu, Dict[str, Any]], Any]]
+    address: Union[int, Callable[[], int]]
+    return_address: Union[int, Callable[[], int]]
+    callback: Optional[Callable[[HyperEmu, Dict[str, Any]], Any]] = None
     double_call: bool = False
+    _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
+    _return_address: Union[int, Callable[[], int]] = field(init=False, repr=False)
+
+    @property
+    def address(self):
+        return int(self._address)
+
+    @address.setter
+    def address(self, value):
+        self._address = value
+
+    @property
+    def return_address(self):
+        return int(self._return_address)
+
+    @return_address.setter
+    def return_address(self, value):
+        self._return_address = value
 
 
 @dataclass
@@ -40,14 +59,14 @@ class Hooks(Plugin):
         for hook in hooks:
             start = hook.address
             ctx = {self.emu.CTX_GLOBAL: self.emu.context}
-            func = partial(self._hook, hook, ctx)
+            func = partial(Hooks._hook, hook, ctx)
             emu_hook = self.emu.add_code_hook(func, start)
 
             self._hooks.append(ActiveHook(hook, emu_hook))
             log.info(f'Added hook {hook.name}')
 
     @staticmethod
-    def _hook(emu: HyperEmu, hook_type: HookType, ctx: Dict[str, Any]):
+    def _hook(hook_type: HookType, ctx: Dict[str, Any], emu: HyperEmu):
         if not hook_type.return_address:
             was_called = hook_type.double_call
             hook_type.double_call = False
@@ -61,5 +80,8 @@ class Hooks(Plugin):
         func = hook_type.callback
         if func:
             func(emu, ctx)
+
+        if hook_type.return_address is not None:
+            emu.pc = hook_type.return_address
         elif old_pc == emu.pc:
             hook_type.double_call = not hook_type.double_call
