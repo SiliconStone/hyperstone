@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Optional, Iterable, Type, TypeVar, List, Any
 
 from hyperstone.emulator import HyperEmu
+from hyperstone.exceptions import HSPluginNotFoundError
 from hyperstone.util import log
 
 IMPORTED_PLUGIN_NAME = 'HYPERSTONE_REQUIRE__{name}_'
@@ -41,6 +42,13 @@ class Plugin:
     @abstractmethod
     def _handle_interact(self, *objs: '_INTERACT_TYPE'):
         pass
+
+    @staticmethod
+    def get_loaded(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> _PLUGIN_TYPE:
+        for loaded in Plugin.get_all_loaded(plugin, emu):
+            return loaded
+        else:
+            raise HSPluginNotFoundError(f'{plugin} is not loaded')
 
     @staticmethod
     def require(plugin: Type[_PLUGIN_TYPE], emu: HyperEmu) -> _PLUGIN_TYPE:

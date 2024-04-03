@@ -3,6 +3,7 @@ import megastone as ms
 import hyperstone as hs
 import hyperstone.plugins.memory.map_code
 import hyperstone.plugins.memory.map_raw
+from hyperstone import HyperEmu
 from hyperstone.plugins.memory import SegmentInfo, CodeSegment, CodeStream, RawSegment, RawStream
 from hyperstone.plugins.hooks import HookType
 
@@ -53,11 +54,11 @@ SIMPLE_SETTINGS = [
             name='Skip bad',
             address=(SEGMENTS @ 'test').address + 3 * OPCODE_SIZE,
             return_address=(SEGMENTS @ 'test').address + 5 * OPCODE_SIZE,
-            callback=lambda mu, _: setattr(mu.regs, 'r0', mu.regs['r0'] + 1)
+            callback=lambda mu, _: (hs.hooks.ret(mu, mu.regs.r0 + 1), hs.hooks.debug_instructions_hook(mu))
         ),
     ),
 
-    hs.plugins.emulation.FunctionEntrypoint(0x08000000),
+    hs.plugins.runners.FunctionEntrypoint(0x08000000),
 ]
 
 

@@ -8,3 +8,11 @@ class HyperstonePluginError(HyperstoneError):
 
 class HSPluginInteractNotReadyError(HyperstonePluginError):
     pass
+
+
+class HSPluginConflictError(HyperstonePluginError):
+    pass
+
+
+class HSPluginNotFoundError(HyperstonePluginError):
+    pass

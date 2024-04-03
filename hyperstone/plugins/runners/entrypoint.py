@@ -9,7 +9,7 @@ class Entrypoint(RunnerPlugin):
     def _handle_interact(self, *objs: Any):
         pass
 
-    def __init__(self, entrypoint: int):
+    def __init__(self, entrypoint: int = 0):
         super().__init__()
         self.entrypoint = entrypoint
 
@@ -22,8 +22,3 @@ class Entrypoint(RunnerPlugin):
             self._run_emu()
         except ms.MemFaultError as f:
             log.error(f)
-
-
-class FunctionEntrypoint(Entrypoint):
-    def _run_emu(self):
-        self.emu.run_function(self.entrypoint)

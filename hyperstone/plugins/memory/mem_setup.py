@@ -1,9 +1,9 @@
 from typing import Any
 
-from hyperstone.plugins.base import Plugin
-from hyperstone.emulator import HyperEmu
 from hyperstone.plugins.memory.map_segment import MapSegment
 from hyperstone.plugins.memory.map_segment import SegmentInfo
+from hyperstone.plugins.base import Plugin
+from hyperstone.emulator import HyperEmu
 
 
 class SetupMemory(Plugin):

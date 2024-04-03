@@ -1,3 +1,4 @@
+from typing import Tuple, Optional
 import megastone as ms
 
 from hyperstone.emulator import HyperEmu
@@ -6,7 +7,7 @@ from hyperstone.settings import SettingsType
 from hyperstone.util import log
 
 
-def start(arch: ms.Architecture, settings: SettingsType) -> HyperEmu:
+def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Optional[RunnerPlugin]]:
     emu = HyperEmu(arch, settings)
 
     runner = None
@@ -18,8 +19,15 @@ def start(arch: ms.Architecture, settings: SettingsType) -> HyperEmu:
             runner = plugin
 
     if not runner:
-        log.error(f'No runner plugin supplied!')
-    else:
+        log.warning(f'No runner plugin supplied!')
+
+    return emu, runner
+
+
+def start(arch: ms.Architecture, settings: SettingsType) -> HyperEmu:
+    emu, runner = prepare(arch, settings)
+
+    if runner:
         runner.run()
 
     return emu
