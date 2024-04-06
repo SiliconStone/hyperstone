@@ -25,21 +25,16 @@ class MapRaw(Plugin):
         self.write_plugin: Optional[WriteRaw] = None
         self.write_plugin_type = WriteRaw
 
-    def prepare(self, emu: HyperEmu):
+    def _prepare(self):
         """
         Prepare for execution.
-
-        Args:
-            emu (HyperEmu): The emulator instance.
         """
-        self.segment_plugin = self.require(MapSegment, emu)
-        self.write_plugin = self.require(self.write_plugin_type, emu)
+        self.segment_plugin = Plugin.require(MapSegment, self.emu)
+        self.write_plugin = Plugin.require(self.write_plugin_type, self.emu)
 
         self.segment_plugin.prepare(self.emu)
 
-        super().prepare(emu)
-
-    def _handle_interact(self, *objs: RawSegment):
+    def _handle(self, obj: RawSegment):
         """
         Raises:
             HSPluginInteractNotReadyError: _description_
@@ -47,9 +42,8 @@ class MapRaw(Plugin):
         if self.segment_plugin is None or self.write_plugin is None:
             raise HSPluginInteractNotReadyError(f'Could not require plugins! {self.segment_plugin=}, {self.write_plugin=}')
 
-        for obj in objs:
-            if obj.stream.base is None:
-                obj.stream.base = obj.segment.address
+        if obj.stream.base is None:
+            obj.stream.base = obj.segment.address
 
-            self.segment_plugin.interact(obj.segment)
-            self.write_plugin.interact(obj.stream)
+        self.segment_plugin.interact(obj.segment)
+        self.write_plugin.interact(obj.stream)

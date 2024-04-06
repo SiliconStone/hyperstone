@@ -6,7 +6,7 @@ from hyperstone.util import log
 
 
 class Entrypoint(RunnerPlugin):
-    def _handle_interact(self, *objs: Any):
+    def _handle(self, obj: Any):
         pass
 
     def __init__(self, entrypoint: int = 0):

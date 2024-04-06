@@ -25,13 +25,12 @@ class MapSegment(Plugin):
         self._mapped_info = []
         self._segments = []
 
-    def _handle_interact(self, *objs: SegmentInfo):
+    def _handle(self, seg: SegmentInfo):
         """
         """
-        for seg in objs:
-            log.info(f'Mapping segment {seg.name}: {seg}')
-            self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
-            self._mapped_info.append(seg)
+        log.info(f'Mapping segment {seg.name}: {seg}')
+        self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
+        self._mapped_info.append(seg)
 
     def __getitem__(self, name: str) -> SegmentInfo:
         for seg in chain(self._mapped_info, self._interact_queue):

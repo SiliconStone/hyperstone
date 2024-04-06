@@ -2,7 +2,23 @@ class HyperstoneError(Exception):
     pass
 
 
+class HyperstoneRuntimeError(HyperstoneError):
+    pass
+
+
+class HyperstoneHooksError(HyperstoneError):
+    pass
+
+
 class HyperstonePluginError(HyperstoneError):
+    pass
+
+
+class HSRuntimeBadAccess(HyperstoneRuntimeError):
+    pass
+
+
+class HSHookAlreadyRemovedError(HyperstoneHooksError):
     pass
 
 

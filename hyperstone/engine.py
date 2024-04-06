@@ -18,9 +18,6 @@ def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Op
                 raise ValueError(f'Cannot have two runner plugins ({runner} and {plugin})')
             runner = plugin
 
-    if not runner:
-        log.warning(f'No runner plugin supplied!')
-
     return emu, runner
 
 
@@ -28,6 +25,9 @@ def start(arch: ms.Architecture, settings: SettingsType) -> HyperEmu:
     emu, runner = prepare(arch, settings)
 
     if runner:
+        log.debug(f'Executing runner {runner}')
         runner.run()
+    else:
+        log.warning(f'No runner plugin supplied!')
 
     return emu

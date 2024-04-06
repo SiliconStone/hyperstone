@@ -18,15 +18,12 @@ class ExportFunction(Plugin):
     def __init__(self, *objs: FunctionInfo):
         super().__init__(*objs)
         self.functions: Dict[str, FunctionInfo] = {}
-        self.runner: Optional[FunctionEntrypoint] = None
 
-    def _handle_interact(self, *objs: FunctionInfo):
-        for obj in objs:
-            self.functions[obj.name] = obj
+    def _prepare(self):
+        pass
 
-    def prepare(self, emu: HyperEmu):
-        self.runner = Plugin.require(FunctionEntrypoint, emu)
-        super().prepare(emu)
+    def _handle(self, obj: FunctionInfo):
+        self.functions[obj.name] = obj
 
     def __getitem__(self, name):
         if name not in self.functions:
@@ -45,7 +42,7 @@ class ExportedFunctionCaller:
             raise HSPluginInteractNotReadyError(f'Cannot run function "{self._function.name}" before preparing')
 
         emu = self._parent.emu
-        runner = self._parent.runner
+        runner = Plugin.require(FunctionEntrypoint, emu)
 
         if len(args) > len(self._function.arguments):
             log.error(f'Passing too many arguments, ignoring last {len(args) - len(self._function.arguments)} arguments')

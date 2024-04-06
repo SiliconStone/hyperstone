@@ -16,10 +16,8 @@ class WriteRaw(Plugin):
     def __init__(self, *args: RawStream):
         super().__init__(*args)
 
-    def _handle_interact(self, *objs: RawStream):
-        for obj in objs:
-            if obj.base is None:
-                raise ValueError(f'Cannot infer base address for {obj}')
-            self.emu.mem.write(obj.base, obj.data)
-            log.info(f'Wrote {len(obj.data):08X} bytes to {obj.base:08X}...')
-
+    def _handle(self, obj: RawStream):
+        if obj.base is None:
+            raise ValueError(f'Cannot infer base address for {obj}')
+        self.emu.mem.write(obj.base, obj.data)
+        log.info(f'Wrote {len(obj.data):08X} bytes to {obj.base:08X}...')

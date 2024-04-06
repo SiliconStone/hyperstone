@@ -4,6 +4,7 @@ from hyperstone.plugins.memory.map_code import CodeSegment, MapCode
 from hyperstone.plugins.memory.write_raw import RawStream, WriteRaw
 from hyperstone.plugins.memory.write_code import WriteCode, CodeStream
 from hyperstone.plugins.memory.map_segment import MapSegment, SegmentInfo
+from hyperstone.plugins.memory.access_enforce import EnforceMemoryAccess, MemoryACL
 
 __all__ = [
     "RawSegment",
@@ -17,4 +18,6 @@ __all__ = [
     "CodeStream",
     "WriteCode",
     "WriteRaw",
+    "EnforceMemoryAccess",
+    "MemoryACL",
 ]

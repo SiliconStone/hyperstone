@@ -10,7 +10,7 @@ class GenericConsts(Plugin):
     """
     Just a plugin for even below base generic consts
     """
-    def _handle_interact(self, *objs: Any):
+    def _handle(self, obj: Any):
         pass
 
 

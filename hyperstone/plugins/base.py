@@ -1,3 +1,4 @@
+import abc
 from abc import abstractmethod
 from typing import Optional, Iterable, Type, TypeVar, List, Any
 
@@ -30,17 +31,30 @@ class Plugin:
             return
 
         self.emu = emu
-        self._handle_interact(*self._interact_queue)
+        self._prepare()
+
+        self._handle_all_interact(*self._interact_queue)
         self._interact_queue.clear()
 
     def interact(self, *objs: '_INTERACT_TYPE'):
         if self.ready:
-            self._handle_interact(*objs)
+            self._handle_all_interact(*objs)
         else:
             self._interact_queue += objs
 
+    def _handle_all_interact(self, *objs: '_INTERACT_TYPE'):
+        for obj in objs:
+            self._handle(obj)
+
+    def _prepare(self):
+        """
+        Users should override this in case the plugin needs to be prepared.
+        :return: None
+        """
+        pass
+
     @abstractmethod
-    def _handle_interact(self, *objs: '_INTERACT_TYPE'):
+    def _handle(self, obj: '_INTERACT_TYPE'):
         pass
 
     @staticmethod

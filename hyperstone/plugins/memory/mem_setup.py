@@ -19,7 +19,7 @@ class SetupMemory(Plugin):
     STACK_BASE = 0x7e000000
     STACK_SIZE = 0x8000
 
-    def _handle_interact(self, *objs: Any):
+    def _handle(self, obj: Any):
         pass
 
     def __init__(self,
@@ -39,7 +39,6 @@ class SetupMemory(Plugin):
             stack_size,
         )
 
-    def prepare(self, emu: HyperEmu):
-        segments = self.require(MapSegment, emu)
+    def _prepare(self):
+        segments = Plugin.require(MapSegment, self.emu)
         segments.interact(self.support_segment, self.stack_segment)
-        super().prepare(emu)

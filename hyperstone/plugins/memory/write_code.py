@@ -21,10 +21,9 @@ class WriteCode(Plugin):
     def __init__(self, *args: CodeStream):
         super().__init__(*args)
 
-    def _handle_interact(self, *objs: CodeStream):
-        for obj in objs:
-            if obj.base is None:
-                raise ValueError(f'Cannot infer base address for {obj}')
-            write_size = self.emu.mem.write_code(obj.base, obj.assembly, obj.isa)
-            log.info(f'Wrote {write_size:08X} bytes to {obj.base:08X}...')
+    def _handle(self, obj: CodeStream):
+        if obj.base is None:
+            raise ValueError(f'Cannot infer base address for {obj}')
+        write_size = self.emu.mem.write_code(obj.base, obj.assembly, obj.isa)
+        log.info(f'Wrote {write_size:08X} bytes to {obj.base:08X}...')
 
