@@ -3,7 +3,6 @@ from typing import Any
 from hyperstone.plugins.memory.map_segment import MapSegment
 from hyperstone.plugins.memory.map_segment import SegmentInfo
 from hyperstone.plugins.base import Plugin
-from hyperstone.emulator import HyperEmu
 
 
 class SetupMemory(Plugin):
@@ -41,4 +40,8 @@ class SetupMemory(Plugin):
 
     def _prepare(self):
         segments = Plugin.require(MapSegment, self.emu)
+
+        segments.prepare(self.emu)  # We need it instantly in order to init the sp for megastone
         segments.interact(self.support_segment, self.stack_segment)
+
+        self.emu.reset_sp()

@@ -8,7 +8,7 @@ from hyperstone.util.resolver import LazyResolver
 from hyperstone.util.logger import log
 
 
-@dataclass
+@dataclass(frozen=True)
 class SegmentInfo:
     name: str
     address: int

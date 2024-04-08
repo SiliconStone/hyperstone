@@ -3,6 +3,8 @@ from typing import Optional
 
 from hyperstone.plugins.base import Plugin
 from hyperstone.util.logger import log
+
+
 @dataclass
 class RawStream:
     data: bytes

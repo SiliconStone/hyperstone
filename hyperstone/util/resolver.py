@@ -1,40 +1,40 @@
+from typing import Optional, List
 import operator
 
 
 class LazyResolver:
-    def __init__(self, subject):
+    def __init__(self, subject, actions: Optional[List] = None):
         self._subject = subject
-        self._actions = []
+        if actions is None:
+            actions = []
+        self._actions = actions
 
     def __add__(self, other):
-        self._actions.append((operator.add, other))
-        return self
+        return LazyResolver(self._subject, self._actions + [(operator.add, other)])
 
     def __sub__(self, other):
-        self._actions.append((operator.sub, other))
-        return self
+        return LazyResolver(self._subject, self._actions + [(operator.sub, other)])
 
     def __mul__(self, other):
-        self._actions.append((operator.mul, other))
-        return self
+        return LazyResolver(self._subject, self._actions + [(operator.mul, other)])
 
     def __getattr__(self, item):
-        self._actions.append((operator.attrgetter(item),))
-        return self
+        return LazyResolver(self._subject, self._actions + [(operator.attrgetter(item),)])
 
     def __getitem__(self, item):
-        self._actions.append((operator.getitem, item))
-        return self
+        return LazyResolver(self._subject, self._actions + [(operator.getitem, item)])
 
-    def __call__(self):
+    def resolve(self):
+        subject = self._subject
         for act in self._actions:
             oper = act[0]
             params = act[1:]
-            self._subject = oper(self._subject, *params)
+            subject = oper(subject, *params)
 
-        self._actions.clear()
-
-        return self._subject
+        return subject
 
     def __int__(self):
-        return self()
+        return int(self.resolve())
+
+    def __str__(self):
+        return str(self.resolve())

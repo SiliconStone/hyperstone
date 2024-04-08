@@ -9,6 +9,7 @@ from hyperstone.plugins.memory.map_segment import SegmentInfo
 from hyperstone.plugins.memory.write_raw import WriteRaw, RawStream
 from hyperstone.plugins.memory.map_segment import MapSegment
 
+
 @dataclass
 class RawSegment:
     stream: RawStream
