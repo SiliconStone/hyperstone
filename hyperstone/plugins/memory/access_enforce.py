@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import megastone as ms
 
 from hyperstone.plugins.base import Plugin
-from hyperstone.plugins.hooks import Hooks, HookType, Union
+from hyperstone.plugins.hooks import Hooks, HookType
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSRuntimeBadAccess
 from hyperstone.util.logger import log

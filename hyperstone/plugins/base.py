@@ -17,7 +17,7 @@ class Plugin:
     def plugin_identity(self) -> List[Type]:
         return [type(self), Plugin]
 
-    def __init__(self, *args: List[Any]):
+    def __init__(self, *args: '_INTERACT_TYPE'):
         self._interact_queue = []
         self._interact_queue += args
         self.emu: Optional[HyperEmu] = None
