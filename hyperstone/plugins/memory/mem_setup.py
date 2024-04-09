@@ -37,6 +37,7 @@ class SetupMemory(Plugin):
             stack_base,
             stack_size,
         )
+        self.support_free = None
 
     def _prepare(self):
         segments = Plugin.require(MapSegment, self.emu)
@@ -44,4 +45,5 @@ class SetupMemory(Plugin):
         segments.prepare(self.emu)  # We need it instantly in order to init the sp for megastone
         segments.interact(self.support_segment, self.stack_segment)
 
+        self.support_free = self.support_segment.address
         self.emu.reset_sp()

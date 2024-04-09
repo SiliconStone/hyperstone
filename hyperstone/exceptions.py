@@ -18,6 +18,14 @@ class HSRuntimeBadAccess(HyperstoneRuntimeError):
     pass
 
 
+class HSHookBadParameters(HyperstoneHooksError):
+    pass
+
+
+class HSHookBadState(HyperstoneHooksError):
+    pass
+
+
 class HSHookAlreadyRemovedError(HyperstoneHooksError):
     pass
 
