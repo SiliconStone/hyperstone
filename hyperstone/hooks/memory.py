@@ -1,6 +1,6 @@
 from typing import Optional
 
-from hyperstone.plugins.memory.mem_setup import SetupMemory
+from hyperstone.plugins.memory.mappers.mem_setup import SetupMemory
 from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookBadParameters, HSHookBadState

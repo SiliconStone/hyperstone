@@ -34,6 +34,10 @@ class HSPluginInteractNotReadyError(HyperstonePluginError):
     pass
 
 
+class HSPluginInteractionError(HyperstonePluginError):
+    pass
+
+
 class HSPluginConflictError(HyperstonePluginError):
     pass
 
