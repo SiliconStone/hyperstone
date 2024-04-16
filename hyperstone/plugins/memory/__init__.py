@@ -1,23 +1,24 @@
-from hyperstone.plugins.memory.mappers import MapSegment, SegmentInfo, SetupMemory, MapStream, StreamMappingInfo
-from hyperstone.plugins.memory.writers import WriteStream, Stream, CodeStream, RawStream
-from hyperstone.plugins.memory.access_enforce import EnforceMemoryAccess, MemoryACL
+from hyperstone.plugins.memory.mappers import Segment, SegmentInfo, InitializeSupportStack, StreamMapper, StreamMapperInfo
+from hyperstone.plugins.memory.streams import StreamWriter, Stream, CodeStream, FileStream, RawStream
+from hyperstone.plugins.memory.access_enforce import EnforceMemory, EnforceMemoryInfo
 
 
 __all__ = [
-    'MapSegment',
+    'Segment',
     'SegmentInfo',
 
-    'SetupMemory',
+    'InitializeSupportStack',
 
-    'MapStream',
-    'StreamMappingInfo',
+    'StreamMapper',
+    'StreamMapperInfo',
 
-    'WriteStream',
+    'StreamWriter',
 
     'Stream',
     'CodeStream',
+    'FileStream',
     'RawStream',
 
-    'EnforceMemoryAccess',
-    'MemoryACL',
+    'EnforceMemory',
+    'EnforceMemoryInfo',
 ]

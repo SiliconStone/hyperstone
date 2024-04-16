@@ -1,8 +1,8 @@
-from hyperstone.plugins.interfaces.function import ExportFunction, FunctionInfo
+from hyperstone.plugins.interfaces.function import ExportFunction, ExportFunctionInfo
 from hyperstone.plugins.interfaces.prepare import PreparePlugin
 
 __all__ = [
     'ExportFunction',
-    'FunctionInfo',
+    'ExportFunctionInfo',
     'PreparePlugin',
 ]

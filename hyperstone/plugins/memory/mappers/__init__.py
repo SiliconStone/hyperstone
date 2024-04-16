@@ -1,13 +1,13 @@
-from hyperstone.plugins.memory.mappers.map_segment import MapSegment, SegmentInfo
-from hyperstone.plugins.memory.mappers.map_stream import MapStream, StreamMappingInfo
-from hyperstone.plugins.memory.mappers.mem_setup import SetupMemory
+from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
+from hyperstone.plugins.memory.mappers.map_stream import StreamMapper, StreamMapperInfo
+from hyperstone.plugins.memory.mappers.mem_setup import InitializeSupportStack
 
 __all__ = [
-    'MapSegment',
+    'Segment',
     'SegmentInfo',
 
-    'MapStream',
-    'StreamMappingInfo',
+    'StreamMapper',
+    'StreamMapperInfo',
 
-    'SetupMemory',
+    'InitializeSupportStack',
 ]

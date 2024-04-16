@@ -3,7 +3,7 @@ from typing import Optional
 
 import megastone as ms
 
-from hyperstone.plugins.memory.writers.write_stream import Stream
+from hyperstone.plugins.memory.streams.stream import Stream
 from hyperstone.emulator import HyperEmu
 from hyperstone.util.logger import log
 
@@ -18,5 +18,6 @@ class CodeStream(Stream):
         if self.isa is None:
             self.isa = emu.mem.default_isa
 
-        log.info(f'Assembling {len(self.assembly.split("\n"))} lines for {self.isa} at 0x{self.base:08X}')
+        lines = len(self.assembly.split("\n"))
+        log.info(f'Assembling {lines} lines for {self.isa} at 0x{self.base:08X}')
         return self.isa.assemble(self.assembly, self.base)

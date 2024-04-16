@@ -14,11 +14,11 @@ class Entrypoint(RunnerPlugin):
         self.entrypoint = entrypoint
 
     def _run_emu(self):
-        self.emu.run(address=self.entrypoint)
+        self.emu.run(address=int(self.entrypoint))
 
     def _run(self):
         try:
-            log.info(f'Running from {self.entrypoint:08X}...')
+            log.info(f'Running from {int(self.entrypoint):08X}...')
             self._run_emu()
         except ms.MemFaultError as f:
             log.error(f)

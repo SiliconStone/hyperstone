@@ -3,7 +3,7 @@ from typing import Iterable, Dict, Any, List
 from hyperstone.util.logger import log
 
 
-TAB_SIZE = 8
+TAB_SIZE = 4
 DEFAULT_TAB_COUNT = 1
 TAB_CHARACTER = '\t'
 
@@ -32,8 +32,6 @@ def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]], amount_pe
 
             if current_length > body_max[key]:
                 body_max[key] = current_length
-
-    log.debug(f'Tab data: {body_max}')
 
     for _ in range(amount_per_line):
         for key in header:

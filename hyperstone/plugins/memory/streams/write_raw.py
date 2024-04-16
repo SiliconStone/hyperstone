@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from hyperstone.plugins.memory.writers.write_stream import Stream
+from hyperstone.plugins.memory.streams.stream import Stream
 from hyperstone.emulator import HyperEmu
 
 

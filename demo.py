@@ -1,5 +1,5 @@
-from hyperstone.plugins.memory import SegmentInfo, RawStream, CodeStream, StreamMappingInfo
-from hyperstone.plugins.hooks import HookType
+from hyperstone.plugins.memory import SegmentInfo, RawStream, CodeStream, StreamMapperInfo
+from hyperstone.plugins.hooks import HookInfo
 
 import megastone as ms
 import hyperstone as hs
@@ -7,7 +7,7 @@ import hyperstone as hs
 
 OPCODE_SIZE = 4
 
-SEGMENTS = hs.plugins.memory.MapSegment()
+SEGMENTS = hs.plugins.memory.Segment()
 
 DATA_SEGMENT_ADDR = 0x04000000
 EVIL_FUNCTION_ADDR = 0x08000100
@@ -15,10 +15,10 @@ EVIL_FUNCTION_ADDR = 0x08000100
 SIMPLE_SETTINGS = [
     SEGMENTS,
 
-    hs.plugins.memory.SetupMemory(support_base=0x10000000),  # We use the default support addr already
+    hs.plugins.memory.InitializeSupportStack(support_base=0x10000000),  # We use the default support addr already
 
-    hs.plugins.memory.MapStream(
-        StreamMappingInfo(
+    hs.plugins.memory.StreamMapper(
+        StreamMapperInfo(
             CodeStream(
                 assembly=f'''
                 PUSH    {{LR}}
@@ -45,7 +45,7 @@ SIMPLE_SETTINGS = [
                 address=0x08000000,
             )
         ),
-        StreamMappingInfo(
+        StreamMapperInfo(
             RawStream(
                 data=b'AAAA'
             ),
@@ -57,8 +57,8 @@ SIMPLE_SETTINGS = [
         )
     ),
 
-    hs.plugins.hooks.Hooks(
-        HookType(
+    hs.plugins.hooks.Hook(
+        HookInfo(
             name='Skip bad',
             address=(SEGMENTS @ 'test').address + 5 * OPCODE_SIZE,
             return_address=(SEGMENTS @ 'test').address + 7 * OPCODE_SIZE,
@@ -67,7 +67,7 @@ SIMPLE_SETTINGS = [
     ),
 
     hs.plugins.hooks.FunctionStub(
-        hs.plugins.hooks.StubInfo(
+        hs.plugins.hooks.FunctionStubInfo(
             EVIL_FUNCTION_ADDR
         )
     ),

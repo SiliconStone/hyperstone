@@ -1,11 +1,10 @@
 from typing import Any
 
-from hyperstone.plugins.memory.mappers.map_segment import MapSegment
-from hyperstone.plugins.memory.mappers.map_segment import SegmentInfo
+from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
 from hyperstone.plugins.base import Plugin
 
 
-class SetupMemory(Plugin):
+class InitializeSupportStack(Plugin):
     """
     Setup basic memory segements.
     E.g. stack and segment for internal use.
@@ -28,19 +27,19 @@ class SetupMemory(Plugin):
                  stack_size: int = STACK_SIZE):
         super().__init__()
         self.support_segment = SegmentInfo(
-            SetupMemory.HYPERSTONE_SUPPORT_NAME,
+            InitializeSupportStack.HYPERSTONE_SUPPORT_NAME,
             support_base,
             support_size,
         )
         self.stack_segment = SegmentInfo(
-            SetupMemory.HYPERSTONE_STACK_NAME,
+            InitializeSupportStack.HYPERSTONE_STACK_NAME,
             stack_base,
             stack_size,
         )
         self.support_free = None
 
     def _prepare(self):
-        segments = Plugin.require(MapSegment, self.emu)
+        segments = Plugin.require(Segment, self.emu)
 
         segments.prepare(self.emu)  # We need it instantly in order to init the sp for megastone
         segments.interact(self.support_segment, self.stack_segment)

@@ -18,7 +18,7 @@ class SegmentInfo:
     perms: ms.AccessType = ms.AccessType.RWX
 
 
-class MapSegment(Plugin):
+class Segment(Plugin):
     """
     Map segment.
     """

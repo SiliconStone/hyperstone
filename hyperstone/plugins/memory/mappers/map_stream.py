@@ -2,36 +2,37 @@ from dataclasses import dataclass
 from typing import Optional
 
 from hyperstone.plugins.memory.mappers.map_segment import SegmentInfo
-from hyperstone.plugins.memory.writers.write_raw import RawStream
-from hyperstone.plugins.memory.writers.write_stream import WriteStream, Stream
-from hyperstone.plugins.memory.mappers.map_segment import MapSegment
+from hyperstone.plugins.memory.streams.stream import Stream
+from hyperstone.plugins.memory.streams.write_raw import RawStream
+from hyperstone.plugins.memory.streams.write_stream import StreamWriter
+from hyperstone.plugins.memory.mappers.map_segment import Segment
 from hyperstone.plugins.base import Plugin
 from hyperstone.exceptions import HSPluginInteractNotReadyError
 from hyperstone.util.logger import log
 
 
 @dataclass
-class StreamMappingInfo:
+class StreamMapperInfo:
     stream: Stream
     segment: SegmentInfo
 
 
-class MapStream(WriteStream):
+class StreamMapper(StreamWriter):
     """
     Map and write a stream.
     """
-    def __init__(self, *args: StreamMappingInfo):
+    def __init__(self, *args: StreamMapperInfo):
         super().__init__(*args)
-        self.segment_plugin: Optional[MapSegment] = None
+        self.segment_plugin: Optional[Segment] = None
 
     def _prepare(self):
         """
         Prepare for execution.
         """
-        self.segment_plugin = Plugin.require(MapSegment, self.emu)
+        self.segment_plugin = Plugin.require(Segment, self.emu)
         self.segment_plugin.prepare(self.emu)
 
-    def _handle(self, obj: StreamMappingInfo):
+    def _handle(self, obj: StreamMapperInfo):
         """
         Raises:
             HSPluginInteractNotReadyError: _description_

@@ -2,20 +2,20 @@ from dataclasses import dataclass
 import megastone as ms
 
 from hyperstone.plugins.base import Plugin
-from hyperstone.plugins.hooks import Hooks, HookType
+from hyperstone.plugins.hooks import Hook, HookInfo
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSRuntimeBadAccess
 from hyperstone.util.logger import log
 
 
 @dataclass
-class MemoryACL:
+class EnforceMemoryInfo:
     range: ms.AddressRange
     access: ms.AccessType
 
 
-class EnforceMemoryAccess(Plugin):
-    def __init__(self, *ranges: MemoryACL):
+class EnforceMemory(Plugin):
+    def __init__(self, *ranges: EnforceMemoryInfo):
         super().__init__(*ranges)
         self._hooks = []
 
@@ -29,16 +29,16 @@ class EnforceMemoryAccess(Plugin):
         # Base override / memory map
         self._base = []
 
-        self._ranges = [self.allow, self.deny, self.user, self._base]
+        self._ranges = [self.user, self.allow, self.deny, self._base]
 
     def _prepare(self):
-        hook_plugin: Hooks = Plugin.require(Hooks, self.emu)
+        hook_plugin: Hook = Plugin.require(Hook, self.emu)
         hook_plugin.prepare(self.emu)  # We need access to advanced API - add_hook()
 
-        hook_plugin.add_hook(HookType('EnforceMemoryAccessHook', None, None), self._callback_access, ms.HookType.ACCESS)
-        hook_plugin.add_hook(HookType('EnforceMemoryExecuteHook', None, None), self._callback_execute, ms.HookType.CODE)
+        hook_plugin.add_hook(HookInfo('EnforceMemoryAccessHook', None, None), self._callback_access, ms.HookType.ACCESS)
+        hook_plugin.add_hook(HookInfo('EnforceMemoryExecuteHook', None, None), self._callback_execute, ms.HookType.CODE)
 
-    def _handle(self, obj: MemoryACL):
+    def _handle(self, obj: EnforceMemoryInfo):
         self._base.append(obj)
 
     def _callback_access(self, emu: HyperEmu):
@@ -50,7 +50,7 @@ class EnforceMemoryAccess(Plugin):
     def _access_check(self, emu: HyperEmu, address: int, access_type: ms.AccessType):
         for entry in self._ranges:
             for acl in entry:
-                acl: MemoryACL
+                acl: EnforceMemoryInfo
                 if not acl.range.contains(address):
                     continue
 

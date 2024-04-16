@@ -1,6 +1,6 @@
 from typing import Optional
 
-from hyperstone.plugins.memory.mappers.mem_setup import SetupMemory
+from hyperstone.plugins.memory.mappers.mem_setup import InitializeSupportStack
 from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookBadParameters, HSHookBadState
@@ -13,7 +13,7 @@ def support_malloc(emu: HyperEmu, *, data: Optional[bytes] = None, size: Optiona
     if size is None:
         size = len(data)
 
-    helper = Plugin.require(SetupMemory, emu)
+    helper = Plugin.require(InitializeSupportStack, emu)
     helper.prepare(emu)
 
     if helper.support_free >= helper.support_segment.address + helper.support_segment.size:

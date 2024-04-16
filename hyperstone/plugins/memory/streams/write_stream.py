@@ -1,27 +1,11 @@
-from dataclasses import dataclass
-from typing import Optional
-
+from hyperstone.plugins.memory.streams.stream import Stream
 from hyperstone.plugins.base import Plugin
-from hyperstone.emulator import HyperEmu
 from hyperstone.util.logger import log
 
 
-@dataclass
-class Stream:
-    @property
-    def base(self) -> Optional[int]:
-        return None
-
-    @base.setter
-    def base(self, value: Optional[int]):
-        pass
-
-    @staticmethod
-    def raw(_: HyperEmu) -> bytes:
-        return b''
 
 
-class WriteStream(Plugin):
+class StreamWriter(Plugin):
     """
     Generic stream writer plugin.
     """

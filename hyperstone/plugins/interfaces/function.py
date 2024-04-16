@@ -9,23 +9,23 @@ from hyperstone.util import log
 
 
 @dataclass(frozen=True)
-class FunctionInfo:
+class ExportFunctionInfo:
     name: str
     address: int
     arguments: Tuple[str, ...]
 
 
 class ExportFunction(Plugin):
-    def __init__(self, *objs: FunctionInfo):
+    def __init__(self, *objs: ExportFunctionInfo):
         super().__init__(*objs)
-        self.functions: Dict[str, FunctionInfo] = {}
+        self.functions: Dict[str, ExportFunctionInfo] = {}
         self._runner = FunctionEntrypoint
         self._args = {}
 
     def _prepare(self):
         pass
 
-    def _handle(self, obj: FunctionInfo):
+    def _handle(self, obj: ExportFunctionInfo):
         self.functions[obj.name] = obj
 
     def __getitem__(self, name):
@@ -36,7 +36,7 @@ class ExportFunction(Plugin):
 
 
 class ExportedCaller:
-    def __init__(self, parent: ExportFunction, function: FunctionInfo,
+    def __init__(self, parent: ExportFunction, function: ExportFunctionInfo,
                  runner: Type[RunnerPlugin], args: Optional[Dict[str, Any]] = None):
         self._parent = parent
         self._function = function
