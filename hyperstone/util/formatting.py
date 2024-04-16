@@ -3,17 +3,19 @@ from typing import Iterable, Dict, Any, List
 from hyperstone.util.logger import log
 
 
-TAB_SIZE = 4
+TAB_SIZE = 8
 DEFAULT_TAB_COUNT = 1
 TAB_CHARACTER = '\t'
 
-def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]], amount_per_line: int = 1) -> None:
+def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]],
+                 amount_per_line: int = 1, tab_size: int = TAB_SIZE) -> None:
     """
     This function prints data in a formatted way, based on items' length
 
     :param header: The headers to print (inc. the keys, ordered)
     :param body: Content to print
     :param amount_per_line: Amount to print per line
+    :param tab_size: Size of a tab in spaces on your machine
     """
     body_max = {}
     body_clone = list(body)
@@ -25,7 +27,7 @@ def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]], amount_pe
             continue
 
         for entry in body_clone:
-            current_length = (len(entry[key]) // TAB_SIZE) + 1
+            current_length = (len(entry[key]) // tab_size) + 1
             if key not in body_max:
                 body_max[key] = current_length
                 continue
@@ -38,7 +40,7 @@ def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]], amount_pe
             if 0 == len(body_clone):
                 tabs_needed = DEFAULT_TAB_COUNT
             else:
-                tabs_needed = body_max[key] - (len(key) // TAB_SIZE)
+                tabs_needed = body_max[key] - (len(key) // tab_size)
 
             print(key, end=TAB_CHARACTER * tabs_needed)
 
@@ -47,7 +49,7 @@ def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]], amount_pe
 
     for i, entry in enumerate(body_clone):
         for key in header:
-            tabs_needed = body_max[key] - (len(entry[key]) // TAB_SIZE)
+            tabs_needed = body_max[key] - (len(entry[key]) // tab_size)
             print(entry[key], end=TAB_CHARACTER * tabs_needed)
 
         if (i + 1) % amount_per_line == 0:
