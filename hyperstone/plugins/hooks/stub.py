@@ -21,4 +21,7 @@ class FunctionStub(Plugin):
 
     @staticmethod
     def _callback(stub: FunctionStubInfo, emu: HyperEmu, _):
-        emu.return_from_function(int(stub.return_value))
+        retval = stub.return_value
+        if retval is not None:
+            retval = int(retval)
+        emu.return_from_function(retval)
