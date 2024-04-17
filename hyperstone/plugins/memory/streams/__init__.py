@@ -10,5 +10,6 @@ __all__ = [
     'Stream',
 
     'CodeStream',
+    'FileStream',
     'RawStream',
 ]

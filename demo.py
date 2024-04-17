@@ -66,8 +66,8 @@ SIMPLE_SETTINGS = [
         ),
     ),
 
-    hs.plugins.hooks.FunctionStub(
-        hs.plugins.hooks.FunctionStubInfo(
+    hs.plugins.hooks.FunctionNullsub(
+        hs.plugins.hooks.FunctionNullsubInfo(
             EVIL_FUNCTION_ADDR
         )
     ),
@@ -79,4 +79,4 @@ SIMPLE_SETTINGS = [
 if __name__ == '__main__':
     emu = hs.start(ms.ARCH_ARM, SIMPLE_SETTINGS)
     hs.hooks.debug.print_registers(emu)
-    hs.log.success(f'Retval {emu.regs.r0=:08X}')  # TODO: debug last opc
+    hs.log.success(f'Retval {emu.regs.r0=:08X}')

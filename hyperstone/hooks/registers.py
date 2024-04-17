@@ -5,8 +5,13 @@ from hyperstone.plugins.consts import GenericArchConsts
 from hyperstone.emulator import HyperEmu
 
 
-def ret(emu: HyperEmu, val: int):
+def set_retval(emu: HyperEmu, val: int):
     emu.regs[emu.arch.retval_reg.name] = val
+
+
+def ret(emu: HyperEmu, val: int):
+    set_retval(emu, val)
+    emu.return_from_function()
 
 
 def ok(emu: HyperEmu):

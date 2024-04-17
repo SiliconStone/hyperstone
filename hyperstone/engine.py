@@ -12,6 +12,7 @@ def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Op
 
     runner = None
     for plugin in settings:
+        log.debug(f'Preparing plugin {plugin}...')
         plugin.prepare(emu)
         if isinstance(plugin, RunnerPlugin):
             if runner:

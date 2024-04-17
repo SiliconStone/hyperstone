@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Iterable
 
 from hyperstone.plugins.base import Plugin
 from hyperstone.exceptions import HSPluginInteractionError
@@ -54,11 +54,19 @@ class VirtualRegistry(Plugin):
         else:
             raise HSPluginInteractionError(f'Unknown action "{obj.action}"')
 
-    def search(self, *hints: str) -> int:
+    def search_all(self, *hints: str, require_all: bool = False) -> Iterable[int]:
         for fd, item_hints in self._hints.items():
             for hint in hints:
-                if hint in item_hints:
-                    return fd
+                if hint not in item_hints:
+                    break
+                if not require_all:
+                    yield fd
+            else:
+                yield fd
+
+    def search(self, *hints: str, require_all: bool = False) -> int:
+        for result in self.search_all(*hints, require_all=require_all):
+            return result
 
         raise ValueError(f'Hints found nothing (hints: {hints})')
 
