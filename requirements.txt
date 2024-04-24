@@ -5,3 +5,4 @@ pyelftools>=0.30
 bincopy>=20.0.0
 setuptools>=68.2.0
 loguru>=0.7.2
+lief>=0.14.1

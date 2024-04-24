@@ -42,5 +42,9 @@ class HSPluginConflictError(HyperstonePluginError):
     pass
 
 
+class HSPluginBadStateError(HyperstonePluginError):
+    pass
+
+
 class HSPluginNotFoundError(HyperstonePluginError):
     pass

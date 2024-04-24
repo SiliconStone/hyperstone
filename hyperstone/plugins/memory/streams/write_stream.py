@@ -18,4 +18,4 @@ class StreamWriter(Plugin):
 
         to_write = obj.raw(self.emu)
         self.emu.mem.write(obj.base, to_write)
-        log.info(f'Wrote {len(to_write):08X} bytes to {obj.base:08X}...')
+        log.debug(f'Wrote {len(to_write):08X} bytes to {obj.base:08X}...')

@@ -43,11 +43,13 @@ class StreamMapper(StreamWriter):
         if obj.stream.base is None:
             obj.stream.base = obj.segment.address
 
-        if obj.segment.size is None:
+        my_data = obj.stream.raw(self.emu)
+        if obj.segment.size is not None:
+            my_data = my_data[:obj.segment.size]
+        else:
             log.debug(f'Attempting to get real size of {obj}')
-            my_data = obj.stream.raw(self.emu)
             obj.segment.size = len(my_data)
-            obj.stream = RawStream(my_data, obj.stream.base)
+        obj.stream = RawStream(my_data, obj.stream.base)
 
         self.segment_plugin.interact(obj.segment)
         super()._handle(obj.stream)

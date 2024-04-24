@@ -4,7 +4,7 @@ from typing import Optional, Iterable, Type, TypeVar, List, Any
 
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSPluginNotFoundError
-from hyperstone.util import log
+from hyperstone.util import log, LazyResolver
 
 IMPORTED_PLUGIN_NAME = 'HYPERSTONE_REQUIRE__{name}_'
 
@@ -40,8 +40,21 @@ class Plugin:
         :param args: Arguments passed to this plugin, each one represents an action.
         """
         self._interact_queue = []
-        self._interact_queue += args
         self.emu: Optional[HyperEmu] = None
+
+        self.interact(*args)
+
+    def __call__(self, *args: '_INTERACT_TYPE'):
+        """
+        Alternative way to interact with this plugin.
+        """
+        self.interact(*args)
+
+    def __getitem__(self, item):
+        raise NotImplementedError('No Implementation for getting items from this plugin')
+
+    def __matmul__(self, other: str) -> LazyResolver:
+        return LazyResolver(self)[other]
 
     @property
     def ready(self) -> bool:

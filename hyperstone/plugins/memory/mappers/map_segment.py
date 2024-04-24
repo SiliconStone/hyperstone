@@ -34,7 +34,7 @@ class Segment(Plugin):
             log.error(f'Cannot infer Segment - {seg}\'s size!')
             raise HSPluginInteractionError(f'Segment {seg} has no size.')
 
-        log.info(f'Mapping segment {seg.name}: {seg}')
+        log.debug(f'Mapping segment {seg.name}: {seg}')
         self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
         self._mapped_info.append(seg)
 
@@ -44,6 +44,3 @@ class Segment(Plugin):
                 return seg
 
         raise KeyError(f'Segment {name} not found')
-
-    def __matmul__(self, other: str) -> LazyResolver:
-        return LazyResolver(self)[other]
