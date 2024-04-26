@@ -11,6 +11,11 @@ class LazyResolver:
 
     def __add__(self, other):
         return LazyResolver(self._subject, self._actions + [(operator.add, other)])
+    def __radd__(self, other):
+        return LazyResolver(self._subject, self._actions + [(operator.add, other)])
+
+    def __format__(self, format_spec):
+        return self.resolve().__format__(format_spec)
 
     def __sub__(self, other):
         return LazyResolver(self._subject, self._actions + [(operator.sub, other)])
@@ -20,6 +25,13 @@ class LazyResolver:
 
     def __getattr__(self, item):
         return LazyResolver(self._subject, self._actions + [(operator.attrgetter(item),)])
+
+    @staticmethod
+    def op_call(subject, args, kwargs):
+        return subject(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        return LazyResolver(self._subject, self._actions + [(LazyResolver.op_call, args, kwargs)])
 
     def __getitem__(self, item):
         return LazyResolver(self._subject, self._actions + [(operator.getitem, item)])

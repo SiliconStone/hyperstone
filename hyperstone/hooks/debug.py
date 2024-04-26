@@ -1,4 +1,5 @@
 from unicorn import UcError
+from ctypes import ArgumentError
 
 from hyperstone.util import log, tabbed_print
 from hyperstone.emulator import HyperEmu
@@ -14,7 +15,7 @@ def print_registers(emu: HyperEmu, amount: int = 4):
         for i, reg in enumerate(emu.arch.regs):
             try:
                 data = f'{emu.regs.read(reg):08X}'
-            except UcError:
+            except (UcError, ArgumentError):
                 data = '????????'
 
             yield {'REGISTER': reg.name.upper(), 'VALUE': data}

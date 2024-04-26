@@ -5,6 +5,7 @@ from typing import Optional, Union, Callable
 from hyperstone.plugins.hooks.base import Hook, HookInfo
 from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
+from hyperstone.util.logger import log
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class FunctionNullsub(Plugin):
 
     @staticmethod
     def _callback(stub: FunctionNullsubInfo, emu: HyperEmu, _):
+        log.debug(f'Returning from {stub}')
         retval = stub.return_value
         if retval is not None:
             retval = int(retval)

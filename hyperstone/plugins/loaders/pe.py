@@ -28,9 +28,10 @@ class PELoaderInfo:
 
 
 @dataclass(frozen=True)
-class LoadedPEInfo:
+class MappedPE:
     info: PELoaderInfo
     base: int
+    pe: lief.PE.Binary
 
 
 def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
@@ -105,14 +106,13 @@ class PELoader(Plugin):
 
     def __init__(self, *files: PELoaderInfo):
         super().__init__(*files)
-        self._parsed: Dict[FileNameType, lief.PE.Binary] = {}
-        self._loaded: Dict[FileNameType, LoadedPEInfo] = {}
+        self._loaded: Dict[FileNameType, MappedPE] = {}
         self._segment_plugin: Optional[Segment] = None
         self._stream_mapper: Optional[StreamMapper] = None
 
-    def __getitem__(self, item: FileNameType) -> lief.PE.Binary:
-        return self._parsed[item]
-
+    def __getitem__(self, item: FileNameType) -> MappedPE:
+        return self._loaded[item]
+# TODO: merge loaded and parsed
     def _prepare(self):
         self._segment_plugin = Plugin.require(Segment, self.emu)
         self._stream_mapper = Plugin.require(StreamMapper, self.emu)
@@ -123,11 +123,10 @@ class PELoader(Plugin):
 
         log.info(f'Mapping PE {obj}')
         parsed = lief.PE.parse(obj.file)
-        self._parsed[obj.file] = parsed
 
         # Pick base address
-        base_address = self._pick_base(obj)
-        self._loaded[obj.file] = LoadedPEInfo(obj, base_address)
+        base_address = self._pick_base(obj, parsed)
+        self._loaded[obj.file] = MappedPE(obj, base_address, parsed)
 
         # Map main file
         self._map_headers(obj)
@@ -137,6 +136,7 @@ class PELoader(Plugin):
             self._map_section(section, obj)
 
         # Import table
+        self._handle_iats(obj)
 
         # Apply relocations
 
@@ -162,11 +162,9 @@ class PELoader(Plugin):
 
         return True
 
-    def _pick_base(self, obj: PELoaderInfo) -> int:
+    def _pick_base(self, obj: PELoaderInfo, parsed: lief.PE.Binary) -> int:
         if not self.ready:
             raise HSPluginInteractNotReadyError(f'For PE with {obj=}')
-
-        parsed = self._parsed[obj.file]
 
         # Respect user's request first and foremost
         if obj.base is not None:
@@ -217,13 +215,16 @@ class PELoader(Plugin):
                 segment=SegmentInfo(
                     f'PE.HEADER."{pefile.file}"',
                     self._loaded[pefile.file].base,
-                    self._parsed[pefile.file].sizeof_headers,
+                    self._loaded[pefile.file].pe.sizeof_headers,
                     perms=ms.AccessType.R
                 )
             )
         )
 
     def _map_section(self, section: lief.PE.Section, pefile: PELoaderInfo):
+        if not self.ready:
+            raise HSPluginInteractNotReadyError(f'{pefile=}')
+
         log.debug(f'Mapping section {section.name} of {pefile}')
         self._stream_mapper.interact(StreamMapperInfo(
             stream=RawStream(section.content.tobytes()),
@@ -234,3 +235,47 @@ class PELoader(Plugin):
                 section_perms_to_ms(section)
             )
         ))
+
+    def _handle_iats(self, pefile: PELoaderInfo):
+        if not self.ready:
+            raise HSPluginInteractNotReadyError(f'{pefile=}')
+
+        parsed = self._loaded[pefile.file].pe
+        for dependency in parsed.imports:
+            dependency: lief.PE.Import
+
+            loaded_item = None  # TODO: fixme
+
+            for loaded in self._loaded.copy():
+                if dependency.name not in loaded:
+                    for item in self._interact_queue:
+                        item: PELoaderInfo
+                        if dependency.name in item.file:
+                            self._handle(item)  # Load our dependency real quick
+                            loaded_item = self._loaded[item.file]
+                            break
+                else:
+                    loaded_item = self._loaded[loaded]
+                    break
+            else:
+                if loaded_item is None:
+                    log.warning(f'IAT dependency {dependency.name} for {pefile} not found.')
+                    continue
+
+            self._load_iat(pefile, dependency, loaded_item)
+
+    def _load_iat(self, pefile: PELoaderInfo, dependency: lief.PE.Import, lib: MappedPE):
+        if not self.ready:
+            raise HSPluginInteractNotReadyError(f'{pefile=}')
+
+        my_base = self._loaded[pefile.file].base
+
+        for entry in dependency.entries:
+            entry: lief.PE.ImportEntry
+            parsed = self._loaded[lib.info.file].pe
+            if not parsed.has_symbol(entry.name):
+                log.error(f'IAT dependency {dependency.name} missing symbol {entry.name} for {pefile}.')
+                continue
+
+            my_sym = parsed.get_symbol(entry.name)  # XXX: is it okay to do this instead of get_export()?
+            self.emu.mem.write_word(my_base + entry.iat_address, lib.base + my_sym.value)
