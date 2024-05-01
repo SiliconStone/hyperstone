@@ -11,8 +11,9 @@ from hyperstone.util.logger import log
 @dataclass(frozen=True)
 class FunctionNullsubInfo:
     """
-    :var address: Address of the function to "patch"
-    :var return_value: Return value of the function, if None, then don't change the return value
+    Attributes:
+        address: Address of the function to "patch"
+        return_value: Return value of the function, if None, then don't change the return value
     """
     address: int
     return_value: Optional[int] = None

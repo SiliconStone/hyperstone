@@ -15,7 +15,7 @@ def print_registers(emu: HyperEmu, amount: int = 4):
         for i, reg in enumerate(emu.arch.regs):
             try:
                 data = f'{emu.regs.read(reg):08X}'
-            except (UcError, ArgumentError):
+            except (UcError, ArgumentError, TypeError):
                 data = '????????'
 
             yield {'REGISTER': reg.name.upper(), 'VALUE': data}

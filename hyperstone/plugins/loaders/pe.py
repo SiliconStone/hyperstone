@@ -18,9 +18,11 @@ FileNameType = str
 class PELoaderInfo:
     """
     Represents a PE file that we want to map
-    :var file: The path to a file we want to load
-    :var base: An optional base address for the PE file
-    :var prefer_aslr: Should we try to map with ASLR enabled?
+
+    Vars:
+        file: The path to a file we want to load
+        base: An optional base address for the PE file
+        prefer_aslr: Should we try to map with ASLR enabled?
     """
     file: FileNameType
     base: Optional[int] = None
@@ -38,36 +40,40 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
     """
     Suggest an ASLR'd base
 
-    :param high_entropy: Related to the Char in OptionalHeader, means we support >4GB 64bit ASLR
-    :param is_dll: DLLs have higher ASLR range
-    :return: A proposed base (with ASLR)
+    Vars:
+        high_entropy: Related to the Char in OptionalHeader, means we support >4GB 64bit ASLR
+        is_dll: DLLs have higher ASLR range
 
-    DLL images based above 4 GB: 19 bits of entropy (1 in 524,288 chance of guessing correctly)
-    DLL images based below 4 GB: 14 bits of entropy (1 in 16,384 chance of guessing correctly).
-    EXE images based above 4 GB: 17 bits of entropy (1 in 131,072 chance of guessing correctly).
-    EXE images based below 4 GB: 8 bits of entropy (1 in 256 chance of guessing correctly).
+    Returns:
+        A proposed base (with ASLR)
 
-    K - Kernel
-    E - EXE
-    D - DLL
-    X - Cannot randomise
-    0 - Usually 0
-    1 - Usually 1 (For DLLs)
+    Notes:
+        ASLR in windows -
+        DLL images based above 4 GB: 19 bits of entropy (1 in 524,288 chance of guessing correctly)
+        DLL images based below 4 GB: 14 bits of entropy (1 in 16,384 chance of guessing correctly).
+        EXE images based above 4 GB: 17 bits of entropy (1 in 131,072 chance of guessing correctly).
+        EXE images based below 4 GB: 8 bits of entropy (1 in 256 chance of guessing correctly).
 
-    Random for 32 bit:
-    PDP - PDE - PTE - Offset
-    00-00 0000 000-0 0000 0000 - 0000 0000 0000
-    KK-DD DDDD EEE-E EEEE 0000 - XXXX XXXX XXXX
+        K - Kernel
+        E - EXE
+        D - DLL
+        X - Cannot randomise
+        0 - Usually 0
+        1 - Usually 1 (For DLLs)
 
-    Random for 64 bit:
-    Sign Extend - PML4 - PDP - PDE - PTE - Offset
-    0000 0000 0000 0000 - 0000 0000 0-000 0000
-    KKKK KKKK KKKK KKKK - K111 1111 1-111 1DDE
+        Random for 32 bit:
+        PDP - PDE - PTE - Offset
+        00-00 0000 000-0 0000 0000 - 0000 0000 0000
+        KK-DD DDDD EEE-E EEEE 0000 - XXXX XXXX XXXX
 
-    00-00 0000 000-0 0000 0000 - 0000 0000 0000
-    EE-EE EEEE EEE-E EEEE 0000 - XXXX XXXX XXXX
+        Random for 64 bit:
+        Sign Extend - PML4 - PDP - PDE - PTE - Offset
+        0000 0000 0000 0000 - 0000 0000 0-000 0000
+        KKKK KKKK KKKK KKKK - K111 1111 1-111 1DDE
+
+        00-00 0000 000-0 0000 0000 - 0000 0000 0000
+        EE-EE EEEE EEE-E EEEE 0000 - XXXX XXXX XXXX
     """
-    bits_amount = 0
     base_value = 0
     if high_entropy and is_dll:
         base_value = 0x0000_7ff8_0000_0000  # 7FF8_0003_5ECB_0000
@@ -112,7 +118,7 @@ class PELoader(Plugin):
 
     def __getitem__(self, item: FileNameType) -> MappedPE:
         return self._loaded[item]
-# TODO: merge loaded and parsed
+
     def _prepare(self):
         self._segment_plugin = Plugin.require(Segment, self.emu)
         self._stream_mapper = Plugin.require(StreamMapper, self.emu)
@@ -143,9 +149,13 @@ class PELoader(Plugin):
     def is_base_ok(self, address: int, obj: lief.PE.Binary) -> bool:
         """
         Checks if the given address is unmapped
-        :param address: Address to check
-        :param obj: PE file to check
-        :return: True if unmapped, False otherwise
+
+        Vars:
+            address: Address to check
+            obj: PE file to check
+
+        Returns:
+            True if unmapped, False otherwise
         """
         if not self.ready:
             raise HSPluginInteractNotReadyError()
@@ -244,7 +254,7 @@ class PELoader(Plugin):
         for dependency in parsed.imports:
             dependency: lief.PE.Import
 
-            loaded_item = None  # TODO: fixme
+            loaded_item = None
 
             for loaded in self._loaded.copy():
                 if dependency.name not in loaded:
@@ -278,4 +288,5 @@ class PELoader(Plugin):
                 continue
 
             my_sym = parsed.get_symbol(entry.name)  # XXX: is it okay to do this instead of get_export()?
+            # TODO: FIXME: this might be a bug since symbols seem to be relative to their section
             self.emu.mem.write_word(my_base + entry.iat_address, lib.base + my_sym.value)

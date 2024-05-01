@@ -29,6 +29,11 @@ class MetaSetting(type):
 
 
 class Settings(metaclass=MetaSetting):
+    """
+    Legacy Settings class for supplying hyperstone plugins, might be useful for backwards compatible syntax
+    or for more explicit plugin naming and control.
+    You should use a normal List instead, unless you absolutely need this extra explicitness.
+    """
     pass
 
 

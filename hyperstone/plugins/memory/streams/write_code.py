@@ -10,6 +10,14 @@ from hyperstone.util.logger import log
 
 @dataclass
 class CodeStream(Stream):
+    """
+    A stream of raw assembly code, will be assembled into bytes.
+
+    Attributes:
+        assembly: Raw assembly to assemble
+        base: The base address of the assembly + map address.
+        isa: The ISA of the assembly, If None then attempt to let megastone use the default one for the emulator
+    """
     assembly: str
     base: Optional[int] = None
     isa: Optional[ms.InstructionSet] = None

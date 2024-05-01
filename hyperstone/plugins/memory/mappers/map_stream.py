@@ -35,7 +35,7 @@ class StreamMapper(StreamWriter):
     def _handle(self, obj: StreamMapperInfo):
         """
         Raises:
-            HSPluginInteractNotReadyError: _description_
+            HSPluginInteractNotReadyError: In the undefined case of the plugin being called before being prepared
         """
         if self.segment_plugin is None:
             raise HSPluginInteractNotReadyError(f'Could not require plugins! {self.segment_plugin=}')

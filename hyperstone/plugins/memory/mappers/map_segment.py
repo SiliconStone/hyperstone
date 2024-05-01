@@ -29,6 +29,15 @@ class Segment(Plugin):
 
     def _handle(self, seg: SegmentInfo):
         """
+        Maps a single segment.
+
+        Args:
+            seg: The segment to map
+
+        Raises:
+            HSPluginInteractionError:
+                if the segment has no size.
+                Usually, this means an upper layer failed to infer the size of a segment.
         """
         if seg.size is None:
             log.error(f'Cannot infer Segment - {seg}\'s size!')
@@ -39,6 +48,19 @@ class Segment(Plugin):
         self._mapped_info.append(seg)
 
     def __getitem__(self, name: str) -> SegmentInfo:
+        """
+        Gets a segment by name.
+
+        Args:
+            name: The name of the segment
+
+        Returns:
+            A SegmentInfo object that was used to map the segment.
+            Note that this object is mutable, however changing it will have no effect.
+
+        Raises:
+            KeyError: The segment does not exist.
+        """
         for seg in chain(self._mapped_info, self._interact_queue):
             if seg.name == name:
                 return seg

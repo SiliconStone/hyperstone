@@ -7,15 +7,17 @@ TAB_SIZE = 8
 DEFAULT_TAB_COUNT = 1
 TAB_CHARACTER = '\t'
 
+
 def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]],
                  amount_per_line: int = 1, tab_size: int = TAB_SIZE) -> None:
     """
     This function prints data in a formatted way, based on items' length
 
-    :param header: The headers to print (inc. the keys, ordered)
-    :param body: Content to print
-    :param amount_per_line: Amount to print per line
-    :param tab_size: Size of a tab in spaces on your machine
+    Args:
+        header: The headers to print (inc. the keys, ordered)
+        body: Content to print
+        amount_per_line: Amount to print per line
+        tab_size: Size of a tab in spaces on your machine
     """
     body_max = {}
     body_clone = list(body)
@@ -43,7 +45,6 @@ def tabbed_print(*, header: List[str], body: Iterable[Dict[str, Any]],
                 tabs_needed = body_max[key] - (len(key) // tab_size)
 
             print(key, end=TAB_CHARACTER * tabs_needed)
-
 
     print('\n')
 

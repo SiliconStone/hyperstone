@@ -5,6 +5,7 @@ from hyperstone.emulator import HyperEmu
 
 PrepareFunction = Callable[[HyperEmu], None]
 
+
 class PreparePlugin(Plugin):
     def _handle(self, fn: PrepareFunction):
         fn(self.emu)

@@ -3,6 +3,10 @@ import operator
 
 
 class LazyResolver:
+    """
+    An object that allows resolving other objects on demand.
+    This works by queuing all actions done to an object until we need to resolve() or turn it into int(), for example
+    """
     def __init__(self, subject, actions: Optional[List] = None):
         self._subject = subject
         if actions is None:
@@ -11,6 +15,7 @@ class LazyResolver:
 
     def __add__(self, other):
         return LazyResolver(self._subject, self._actions + [(operator.add, other)])
+
     def __radd__(self, other):
         return LazyResolver(self._subject, self._actions + [(operator.add, other)])
 
@@ -21,6 +26,9 @@ class LazyResolver:
         return LazyResolver(self._subject, self._actions + [(operator.sub, other)])
 
     def __mul__(self, other):
+        return LazyResolver(self._subject, self._actions + [(operator.mul, other)])
+
+    def __rmul__(self, other):
         return LazyResolver(self._subject, self._actions + [(operator.mul, other)])
 
     def __getattr__(self, item):

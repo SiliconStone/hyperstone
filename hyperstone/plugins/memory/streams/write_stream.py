@@ -3,8 +3,6 @@ from hyperstone.plugins.base import Plugin
 from hyperstone.util.logger import log
 
 
-
-
 class StreamWriter(Plugin):
     """
     Generic stream writer plugin.
@@ -13,6 +11,17 @@ class StreamWriter(Plugin):
         super().__init__(*args)
 
     def _handle(self, obj: Stream):
+        """
+        Write a stream to the emulator's memory.
+
+        Args:
+            obj: The stream to write.
+
+        Raises:
+            ValueError:
+                If the stream has no base address.
+                Similar to segments, a missing base address implies an upper layer failing to infer the base address.
+        """
         if obj.base is None:
             raise ValueError(f'Cannot infer base address for {obj}')
 
