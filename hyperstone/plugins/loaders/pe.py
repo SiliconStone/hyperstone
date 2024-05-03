@@ -6,7 +6,8 @@ import lief.PE
 import megastone as ms
 
 from hyperstone.plugins.base import Plugin
-from hyperstone.plugins.memory import Segment, SegmentInfo, StreamMapper, StreamMapperInfo, FileStream, RawStream
+from hyperstone.plugins.memory import (Segment, SegmentInfo, StreamMapper, StreamMapperInfo, FileStream, RawStream,
+                                       EnforceMemory, EnforceMemoryInfo)
 from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStateError
 from hyperstone.util.logger import log
 
@@ -115,6 +116,7 @@ class PELoader(Plugin):
         self._loaded: Dict[FileNameType, MappedPE] = {}
         self._segment_plugin: Optional[Segment] = None
         self._stream_mapper: Optional[StreamMapper] = None
+        self._enforce_plugin: Optional[EnforceMemory] = None
 
     def __getitem__(self, item: FileNameType) -> MappedPE:
         return self._loaded[item]
@@ -122,6 +124,15 @@ class PELoader(Plugin):
     def _prepare(self):
         self._segment_plugin = Plugin.require(Segment, self.emu)
         self._stream_mapper = Plugin.require(StreamMapper, self.emu)
+        for plugin in Plugin.get_all_loaded(EnforceMemory, self.emu):
+            self._enforce_plugin = plugin
+            log.info("Found EnforceMemory plugin, promoting StreamMapper and mapping all Segments as RWX to override "
+                     "megastone page protection system.")
+
+            # Need stream_mapper to act instantly in case of EnforceMemory
+            # That way, we can use EnforceMemory with a mapped ms.Segment
+            self._stream_mapper.prepare(self.emu)
+            break
 
     def _handle(self, obj: PELoaderInfo):
         if obj.file in self._loaded.keys():
@@ -235,16 +246,36 @@ class PELoader(Plugin):
         if not self.ready:
             raise HSPluginInteractNotReadyError(f'{pefile=}')
 
+        # Implement our Segments in EnforceMemory if exists, otherwise use Megastone's default protection engine
+        # Sometimes, Segments are too close to one another, when that happens megastone cannot enforce per-page
+        # permissions
+        permission = section_perms_to_ms(section)
+        enforce_perm = permission
+
+        if self._enforce_plugin is not None:
+            permission = ms.AccessType.RWX
+
+        segment_name = f'PE.SECTION."{pefile.file}"."{section.name}"'
         log.debug(f'Mapping section {section.name} of {pefile}')
         self._stream_mapper.interact(StreamMapperInfo(
             stream=RawStream(section.content.tobytes()),
             segment=SegmentInfo(
-                f'PE.SECTION."{pefile.file}"."{section.name}"',
+                segment_name,
                 self._loaded[pefile.file].base + section.virtual_address,
                 section.virtual_size,
-                section_perms_to_ms(section)
+                permission
             )
         ))
+
+        if self._enforce_plugin is not None:
+            # Force our mapper to work now in order to be able to pull the ms.Segment object
+            self._stream_mapper.prepare(self.emu)
+            self._enforce_plugin.interact(
+                EnforceMemoryInfo(
+                    self._segment_plugin.mapped(segment_name),
+                    enforce_perm,
+                )
+            )
 
     def _handle_iats(self, pefile: PELoaderInfo):
         if not self.ready:
@@ -279,14 +310,19 @@ class PELoader(Plugin):
             raise HSPluginInteractNotReadyError(f'{pefile=}')
 
         my_base = self._loaded[pefile.file].base
+        exports = {}
+
+        parsed = self._loaded[lib.info.file].pe
+        for export in parsed.get_export().entries:
+            export: lief.PE.ExportEntry
+            exports[export.name] = export
 
         for entry in dependency.entries:
             entry: lief.PE.ImportEntry
-            parsed = self._loaded[lib.info.file].pe
-            if not parsed.has_symbol(entry.name):
+            if entry.name not in exports:
                 log.error(f'IAT dependency {dependency.name} missing symbol {entry.name} for {pefile}.')
                 continue
 
-            my_sym = parsed.get_symbol(entry.name)  # XXX: is it okay to do this instead of get_export()?
-            # TODO: FIXME: this might be a bug since symbols seem to be relative to their section
-            self.emu.mem.write_word(my_base + entry.iat_address, lib.base + my_sym.value)
+            export = exports[entry.name]
+            log.debug(f'Loading IAT {dependency.name}!{export.name} for {pefile}')
+            self.emu.mem.write_word(my_base + entry.iat_address, lib.base + export.function_rva)

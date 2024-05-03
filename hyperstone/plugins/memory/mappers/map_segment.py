@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Optional
+from typing import Optional, List
 
 import megastone as ms
 
@@ -25,7 +25,7 @@ class Segment(Plugin):
     def __init__(self, *segments: SegmentInfo):
         super().__init__(*segments)
         self._mapped_info = []
-        self._segments = []
+        self._segments: List[ms.Segment] = []
 
     def _handle(self, seg: SegmentInfo):
         """
@@ -46,6 +46,13 @@ class Segment(Plugin):
         log.debug(f'Mapping segment {seg.name}: {seg}')
         self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
         self._mapped_info.append(seg)
+
+    def mapped(self, name: str) -> ms.Segment:
+        for seg in self._segments:
+            if seg.name == name:
+                return seg
+
+        raise KeyError(f'Segment {name} not mapped')
 
     def __getitem__(self, name: str) -> SegmentInfo:
         """

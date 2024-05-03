@@ -39,6 +39,7 @@ class EnforceMemory(Plugin):
         hook_plugin.add_hook(HookInfo('EnforceMemoryExecuteHook', None, None), self._callback_execute, ms.HookType.CODE)
 
     def _handle(self, obj: EnforceMemoryInfo):
+        log.debug(f'Adding ACL - {obj}')
         self._base.append(obj)
 
     def _callback_access(self, emu: HyperEmu):

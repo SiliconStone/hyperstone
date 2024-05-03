@@ -55,6 +55,7 @@ class Plugin:
         Alternative way to interact with this plugin.
         """
         self.interact(*args)
+        return self
 
     def __getitem__(self, item):
         """
