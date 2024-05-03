@@ -11,15 +11,17 @@ MAIN_BASE = (PE_LOADER @ MAIN_PE)
 
 SETTINGS = [
     PE_LOADER(
-        PELoaderInfo(MAIN_PE, prefer_aslr=True),
-        PELoaderInfo('peloader/FooBar.dll', prefer_aslr=True)
+        PELoaderInfo(MAIN_PE),
+        PELoaderInfo('peloader/FooBar.dll')
     ),
 
     hs.plugins.memory.mappers.InitializeSupportStack(),
 
+    # Comment/Uncomment this line to see how hyperstone behaves with PE
     hs.plugins.memory.EnforceMemory(),
 
-    hs.plugins.runners.FunctionEntrypoint(MAIN_BASE.entrypoint)
+    # On small PEs, this hopefully will point at an illegal X address (.rdata)
+    hs.plugins.runners.FunctionEntrypoint(MAIN_BASE.entrypoint + 0x101C)
 ]
 
 

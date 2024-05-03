@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Optional, Dict
 
 import random
@@ -35,6 +36,17 @@ class MappedPE:
     info: PELoaderInfo
     base: int
     pe: lief.PE.Binary
+
+    @property
+    def entrypoint(self):
+        return self.base + self.pe.optional_header.addressof_entrypoint
+
+    def function(self, name: str) -> int:
+        for func in chain(self.pe.exported_functions, self.pe.functions):
+            if func.name == name:
+                return self.base + func.address
+
+        log.error(f"Function {name} not found")
 
 
 def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
@@ -77,7 +89,7 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
     """
     base_value = 0
     if high_entropy and is_dll:
-        base_value = 0x0000_7ff8_0000_0000  # 7FF8_0003_5ECB_0000
+        base_value = 0x0000_7ff0_0000_0000  # 7FF8_0003_5ECB_0000
         bits_amount = 19
     elif high_entropy and not is_dll:
         bits_amount = 17
@@ -156,6 +168,7 @@ class PELoader(Plugin):
         self._handle_iats(obj)
 
         # Apply relocations
+        self._handle_reloc(obj)
 
     def is_base_ok(self, address: int, obj: lief.PE.Binary) -> bool:
         """
@@ -326,3 +339,18 @@ class PELoader(Plugin):
             export = exports[entry.name]
             log.debug(f'Loading IAT {dependency.name}!{export.name} for {pefile}')
             self.emu.mem.write_word(my_base + entry.iat_address, lib.base + export.function_rva)
+
+    def _handle_reloc(self, pefile: PELoaderInfo):
+        parsed = self._loaded[pefile.file].pe
+        base = self._loaded[pefile.file].base
+        for reloc in parsed.relocations:
+            reloc: lief.PE.Relocation
+            for entry in reloc.entries:
+                entry: lief.PE.RelocationEntry
+
+                if entry.type == lief.PE.RelocationEntry.BASE_TYPES.ABS:
+                    continue
+
+                reloc_offset = base + reloc.virtual_address + entry.position
+                old_val = self.emu.mem.read_word(reloc_offset)
+                self.emu.mem.write_word(reloc_offset, old_val - parsed.imagebase + base)
