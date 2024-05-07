@@ -8,7 +8,7 @@ class MetaSetting(type):
         # This is done to allow pushing imported plugins while running
         items = list(vars(cls))
         for item in items:
-            if item.startswith('_'):
+            if item.startswith('_') and item.endswith('_'):
                 continue
 
             obj = getattr(cls, item)
