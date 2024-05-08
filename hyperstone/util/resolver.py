@@ -58,3 +58,6 @@ class LazyResolver:
 
     def __str__(self):
         return str(self.resolve())
+
+    def __bytes__(self):
+        return bytes(self.resolve())

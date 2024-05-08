@@ -1,5 +1,6 @@
 import abc
 from abc import abstractmethod
+from itertools import chain
 from typing import Optional, Iterable, Type, TypeVar, List, Any
 
 from hyperstone.emulator import HyperEmu
@@ -46,6 +47,7 @@ class Plugin:
                 **Note that the plugin should support calling __init__() with no arguments**.
         """
         self._interact_queue = []
+        self._interacted = []
         self.emu: Optional[HyperEmu] = None
 
         self.interact(*args)
@@ -131,12 +133,23 @@ class Plugin:
     def _handle_all_interact(self, *objs: '_INTERACT_TYPE'):
         for obj in objs:
             self._handle(obj)
+            self._interacted.append(obj)
 
     def _prepare(self):
         """
         Users should override this in case the plugin needs to be prepared in a specific way.
         """
         pass
+
+    @property
+    def get_interacted(self) -> List['_INTERACT_TYPE']:
+        """
+        Retrieve a List of all interacted object, whether they were handled already or not.
+
+        Returns:
+            A List of all interact() objects
+        """
+        return self._interact_queue + self._interacted
 
     @abstractmethod
     def _handle(self, obj: '_INTERACT_TYPE'):

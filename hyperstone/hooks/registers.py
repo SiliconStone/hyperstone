@@ -53,7 +53,6 @@ def eabi(emu: HyperEmu, func: Callable[[HyperEmu, ...], None], *func_args,
     userargs_compensate = len(func_args)
     arg_pull_amount = positional_count - userargs_compensate
 
-    # TODO: unassert
     assert userargs_compensate <= positional_count
     assert len(const_plugin.args) >= arg_pull_amount
 

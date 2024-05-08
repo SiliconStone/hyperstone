@@ -6,7 +6,6 @@ import megastone as ms
 
 from hyperstone.plugins.base import Plugin
 from hyperstone.exceptions import HSPluginInteractionError
-from hyperstone.util.resolver import LazyResolver
 from hyperstone.util.logger import log
 
 

@@ -23,22 +23,22 @@ class StreamMapper(StreamWriter):
     """
     def __init__(self, *args: StreamMapperInfo):
         super().__init__(*args)
-        self.segment_plugin: Optional[Segment] = None
+        self._segment_plugin: Optional[Segment] = None
 
     def _prepare(self):
         """
         Prepare for execution.
         """
-        self.segment_plugin = Plugin.require(Segment, self.emu)
-        self.segment_plugin.prepare(self.emu)
+        self._segment_plugin = Plugin.require(Segment, self.emu)
+        self._segment_plugin.prepare(self.emu)
 
     def _handle(self, obj: StreamMapperInfo):
         """
         Raises:
             HSPluginInteractNotReadyError: In the undefined case of the plugin being called before being prepared
         """
-        if self.segment_plugin is None:
-            raise HSPluginInteractNotReadyError(f'Could not require plugins! {self.segment_plugin=}')
+        if self._segment_plugin is None:
+            raise HSPluginInteractNotReadyError(f'Could not require plugins! {self._segment_plugin=}')
 
         if obj.stream.base is None:
             obj.stream.base = obj.segment.address
@@ -51,5 +51,5 @@ class StreamMapper(StreamWriter):
             obj.segment.size = len(my_data)
         obj.stream = RawStream(my_data, obj.stream.base)
 
-        self.segment_plugin.interact(obj.segment)
+        self._segment_plugin.interact(obj.segment)
         super()._handle(obj.stream)
