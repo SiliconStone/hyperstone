@@ -17,11 +17,11 @@ class CLELoader(Plugin):
     CLE_SEGMENT_TEMPLATE = 'CLE.SEGMENT."{binary}"."#{segment}"'
 
     def __init__(self, *args: CLELoaderInfo):
-        super().__init__(*args)
         self._first_cle: Optional[CLELoaderInfo] = None
         self._security_strategy = CLELoader._security_megastone
         self._segment_plugin: Optional[Segment] = None
         self._mapper_plugin: Optional[StreamMapper] = None
+        super().__init__(*args)
 
     def interact(self, *objs: CLELoaderInfo):
         for _ in objs:

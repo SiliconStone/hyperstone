@@ -28,7 +28,7 @@ class ExportFunction(Plugin):
     def _handle(self, obj: ExportFunctionInfo):
         self.functions[obj.name] = obj
 
-    def __getitem__(self, name):
+    def query(self, name):
         if name not in self.functions:
             raise HyperstonePluginError(f'Function "{name}" doesn\'t exist')
 

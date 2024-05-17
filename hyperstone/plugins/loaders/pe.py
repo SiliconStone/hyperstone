@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Callable, Any, Self
 
 import random
 import lief.PE
@@ -9,6 +9,8 @@ import megastone as ms
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.memory import (Segment, SegmentInfo, StreamMapper, StreamMapperInfo, FileStream, RawStream,
                                        EnforceMemory, EnforceMemoryInfo)
+from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook
+from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStateError
 from hyperstone.util.logger import log
 
@@ -25,10 +27,12 @@ class PELoaderInfo:
         file: The path to a file we want to load
         base: An optional base address for the PE file
         prefer_aslr: Should we try to map with ASLR enabled?
+        map_sections_rwx: Should map the header as RWX?
     """
     file: FileNameType
     base: Optional[int] = None
     prefer_aslr: bool = False
+    map_header_rwx: bool = False
 
 
 @dataclass(frozen=True)
@@ -122,20 +126,41 @@ class PELoader(Plugin):
     interact() can be used to map a PE file.
     """
     _INTERACT_TYPE = PELoaderInfo
+    _IAT_HOOK_SEP = '@'
 
     def __init__(self, *files: PELoaderInfo):
         super().__init__(*files)
         self._loaded: Dict[FileNameType, MappedPE] = {}
+        self._missing_iats: Dict[str, Dict[str, int]] = {}
         self._segment_plugin: Optional[Segment] = None
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
+        self._hook_plugin: Optional[Hook] = None
+        self._iat_hooks: Dict[str, Callable[[HyperEmu, dict], Any]] = {}
 
-    def __getitem__(self, item: FileNameType) -> MappedPE:
+    def query(self, item: FileNameType) -> MappedPE:
         return self._loaded[item]
+
+    def missing_iat(self, name: str, callback: Callable[[HyperEmu, dict], Any]) -> Self:
+        """
+        Put a hook on a IAT entry that wasn't loaded
+        Args:
+            name: The name of the IAT entry, for example (KERNEL32.DLL!LoadLibraryA)
+            callback: The callback function to use
+
+        Returns:
+            self, for chaining inside classes / Settings
+        """
+        self._iat_hooks[name] = callback
+        return self
 
     def _prepare(self):
         self._segment_plugin = Plugin.require(Segment, self.emu)
         self._stream_mapper = Plugin.require(StreamMapper, self.emu)
+        for plugin in Plugin.get_all_loaded(Hook, self.emu):
+            self._hook_plugin = plugin
+            log.info('Found Hook plugin, will attempt to hook every missing IAT entry')
+            break
         for plugin in Plugin.get_all_loaded(EnforceMemory, self.emu):
             self._enforce_plugin = plugin
             log.info("Found EnforceMemory plugin, promoting StreamMapper and mapping all Segments as RWX to override "
@@ -183,6 +208,9 @@ class PELoader(Plugin):
         """
         if not self.ready:
             raise HSPluginInteractNotReadyError()
+
+        if address == 0:
+            return False
 
         if self.emu.mem.is_mapped(address, obj.virtual_size):
             return False
@@ -243,6 +271,8 @@ class PELoader(Plugin):
         if not self.ready:
             raise HSPluginInteractNotReadyError(f'{pefile=}')
 
+        perm = ms.AccessType.RWX if pefile.map_header_rwx else ms.AccessType.R
+
         self._stream_mapper.interact(
             StreamMapperInfo(
                 stream=FileStream(pefile.file),
@@ -250,7 +280,7 @@ class PELoader(Plugin):
                     f'PE.HEADER."{pefile.file}"',
                     self._loaded[pefile.file].base,
                     self._loaded[pefile.file].pe.sizeof_headers,
-                    perms=ms.AccessType.R
+                    perms=perm
                 )
             )
         )
@@ -314,8 +344,47 @@ class PELoader(Plugin):
             else:
                 if loaded_item is None:
                     log.warning(f'IAT dependency {dependency.name} for {pefile} not found.')
-                    continue
 
+                    if dependency.name not in self._missing_iats:
+                        self._missing_iats[dependency.name] = {}
+
+                    retry = 5
+                    base = 0
+                    is64 = parsed.optional_header.has(lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA)
+                    while (not self.is_base_ok(base, parsed)) and retry > 0:
+                        retry -= 1
+                        base = calculate_aslr(is64, True)
+
+                    self._segment_plugin.interact(
+                        SegmentInfo(f'IAT PLT for {dependency.name}', base,
+                                    len(dependency.entries) * self.emu.arch.word_size)
+                    )
+
+                    for entry in dependency.entries:
+                        entry: lief.PE.ImportEntry
+                        if entry in self._missing_iats[dependency.name]:
+                            log.warning(f'IAT dependency {dependency.name}!{entry.name} mapped at '
+                                        f'{self._missing_iats[dependency.name][entry.name]:#X}')
+                            continue
+
+                        my_base = self._loaded[pefile.file].base
+
+                        self._missing_iats[dependency.name][entry.name] = base
+                        self.emu.mem.write_word(my_base + entry.iat_address, base)
+
+                        if self._hook_plugin is not None:
+                            self._hook_plugin.interact(HookInfo(
+                                f'IAT{self._IAT_HOOK_SEP}{dependency.name}!{entry.name}',
+                                base,
+                                None,
+                                self._iat_hook_callback,
+                            ))
+                        else:
+                            log.warning('No Hook plugin was loaded in the current project. '
+                                        'Please load one if you want to use IAT hooks feature')
+                        base += self.emu.arch.word_size
+
+                    continue
             self._load_iat(pefile, dependency, loaded_item)
 
     def _load_iat(self, pefile: PELoaderInfo, dependency: lief.PE.Import, lib: MappedPE):
@@ -354,3 +423,15 @@ class PELoader(Plugin):
                 reloc_offset = base + reloc.virtual_address + entry.position
                 old_val = self.emu.mem.read_word(reloc_offset)
                 self.emu.mem.write_word(reloc_offset, old_val - parsed.imagebase + base)
+
+    def _iat_hook_callback(self, emu: HyperEmu, ctx: Dict[str, Any]):
+        old_pc = emu.pc
+
+        hook: ActiveHook = ctx[self._hook_plugin.CTX_HOOK]
+        hook_fn = hook.type.name.split(self._IAT_HOOK_SEP)[-1]
+
+        if hook_fn in self._iat_hooks:
+            self._iat_hooks[hook_fn](emu, ctx)
+
+        if old_pc == emu.pc:
+            emu.pc = 0

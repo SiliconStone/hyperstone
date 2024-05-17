@@ -47,13 +47,14 @@ class ActiveHook:
 
 class Hook(Plugin):
     SILENT = '!'
+    CTX_HOOK = '__hook__'
 
     def __init__(self, *hooks: HookInfo):
         super().__init__()
         self._interact_queue += hooks
         self._hooks: List[ActiveHook] = []
 
-    def __getitem__(self, item: str) -> ActiveHook:
+    def query(self, item: str) -> ActiveHook:
         for hook in self._hooks:
             if hook.type.name == item:
                 return hook
@@ -70,7 +71,8 @@ class Hook(Plugin):
     def _handle(self, hook: HookInfo):
         ctx = {self.emu.CTX_GLOBAL: self.emu.context}
         func = partial(Hook._hook, hook, ctx)
-        self.add_hook(hook, func, ms.HookType.CODE)
+        active = self.add_hook(hook, func, ms.HookType.CODE)
+        ctx[self.CTX_HOOK] = active
 
     def add_hook(self, hook: HookInfo, func: Union[Callable[[HyperEmu], None], ms.HookFunc],
                  access_type: ms.HookType) -> ActiveHook:

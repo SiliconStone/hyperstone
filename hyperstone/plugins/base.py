@@ -1,7 +1,7 @@
 import abc
 from abc import abstractmethod
 from itertools import chain
-from typing import Optional, Iterable, Type, TypeVar, List, Any
+from typing import Optional, Iterable, Type, TypeVar, List, Any, Union
 
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSPluginNotFoundError
@@ -19,6 +19,8 @@ class Plugin:
     """
     _INTERACT_TYPE = TypeVar('_INTERACT_TYPE')
     _PLUGIN_TYPE = TypeVar('_PLUGIN_TYPE', bound='Plugin')
+    _QUERY_KEY_TYPE = TypeVar('_QUERY_KEY_TYPE')
+    _QUERY_VALUE_TYPE = TypeVar('_QUERY_VALUE_TYPE')
 
     @property
     def plugin_identity(self) -> List[Type]:
@@ -59,14 +61,27 @@ class Plugin:
         self.interact(*args)
         return self
 
-    def __getitem__(self, item):
+    def query(self, item: '_QUERY_KEY_TYPE') -> '_QUERY_VALUE_TYPE':
+        raise NotImplementedError('No Implementation for getting items from this plugin')
+
+    def __getitem__(self, item: '_QUERY_KEY_TYPE') -> Union['_QUERY_VALUE_TYPE', LazyResolver]:
         """
         A way to obtain data from a plugin.
 
         Raises:
             NotImplementedError: In case that the plugin doesn't implement __getitem_
         """
-        raise NotImplementedError('No Implementation for getting items from this plugin')
+        if self.ready:
+            return self.query(item)
+        else:
+            return self @ item
+
+    def __contains__(self, item):
+        try:
+            _ = self.query(item)
+            return True
+        except KeyError:
+            return False
 
     def __matmul__(self, item) -> LazyResolver:
         """

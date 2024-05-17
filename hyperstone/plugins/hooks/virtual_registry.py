@@ -70,7 +70,7 @@ class VirtualRegistry(Plugin):
 
         raise ValueError(f'Hints found nothing (hints: {hints})')
 
-    def __getitem__(self, fd: int) -> Any:
+    def query(self, fd: int) -> Any:
         if fd not in self._registry:
             raise ValueError(f'Invalid fd {fd}')
 
