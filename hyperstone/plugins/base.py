@@ -61,24 +61,24 @@ class Plugin:
         self.interact(*args)
         return self
 
-    def query(self, item: '_QUERY_KEY_TYPE') -> '_QUERY_VALUE_TYPE':
-        raise NotImplementedError('No Implementation for getting items from this plugin')
+    def query(self, item: '_QUERY_KEY_TYPE') -> Union['_QUERY_VALUE_TYPE', LazyResolver]:
+        if self.ready:
+            return self[item]
+        else:
+            return self @ item
 
-    def __getitem__(self, item: '_QUERY_KEY_TYPE') -> Union['_QUERY_VALUE_TYPE', LazyResolver]:
+    def __getitem__(self, item: '_QUERY_KEY_TYPE') -> '_QUERY_VALUE_TYPE':
         """
         A way to obtain data from a plugin.
 
         Raises:
             NotImplementedError: In case that the plugin doesn't implement __getitem_
         """
-        if self.ready:
-            return self.query(item)
-        else:
-            return self @ item
+        raise NotImplementedError('No Implementation for getting items from this plugin')
 
     def __contains__(self, item):
         try:
-            _ = self.query(item)
+            _ = self[item]
             return True
         except KeyError:
             return False

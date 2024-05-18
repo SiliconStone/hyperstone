@@ -54,7 +54,7 @@ class Hook(Plugin):
         self._interact_queue += hooks
         self._hooks: List[ActiveHook] = []
 
-    def query(self, item: str) -> ActiveHook:
+    def __getitem__(self, item: str) -> ActiveHook:
         for hook in self._hooks:
             if hook.type.name == item:
                 return hook
