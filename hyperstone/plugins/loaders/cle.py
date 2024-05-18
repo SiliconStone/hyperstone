@@ -3,10 +3,15 @@ from typing import Callable, Optional, Tuple, Union
 import cle
 import megastone as ms
 
-from hyperstone.plugins.memory import (StreamMapper, StreamMapperInfo, LazyStream, Segment, SegmentInfo,
-                                       EnforceMemory, EnforceMemoryInfo)
+from hyperstone.plugins.memory.mappers.map_stream import StreamMapper, StreamMapperInfo
+from hyperstone.plugins.memory.access_enforce import EnforceMemory, EnforceMemoryInfo
+from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
+from hyperstone.plugins.memory.streams.write_lazy import LazyStream
+
 from hyperstone.plugins.base import Plugin
-from hyperstone.util import log, LazyResolver
+from hyperstone.util.resolver import LazyResolver
+from hyperstone.util.logger import log
+
 
 CLELoaderInfo = cle.Loader
 

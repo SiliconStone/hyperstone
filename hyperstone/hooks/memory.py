@@ -1,7 +1,6 @@
 from typing import Optional
 
 from hyperstone.plugins.memory.mappers.mem_setup import InitializeSupportStack
-from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
 from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookBadParameters, HSHookBadState

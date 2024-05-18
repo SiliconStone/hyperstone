@@ -6,10 +6,14 @@ import random
 import lief.PE
 import megastone as ms
 
-from hyperstone.plugins.base import Plugin
-from hyperstone.plugins.memory import (Segment, SegmentInfo, StreamMapper, StreamMapperInfo, FileStream, RawStream,
-                                       EnforceMemory, EnforceMemoryInfo)
+from hyperstone.plugins.memory.mappers.map_stream import StreamMapper, StreamMapperInfo
+from hyperstone.plugins.memory.access_enforce import EnforceMemory, EnforceMemoryInfo
+from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
+from hyperstone.plugins.memory.streams.write_file import FileStream
+from hyperstone.plugins.memory.streams.write_raw import RawStream
+
 from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook
+from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStateError
 from hyperstone.util.logger import log

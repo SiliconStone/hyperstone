@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from hyperstone.plugins import Plugin
+from hyperstone.plugins.base import Plugin
 
 
 class MetaSetting(type):

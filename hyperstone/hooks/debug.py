@@ -1,8 +1,9 @@
 from unicorn import UcError
 from ctypes import ArgumentError
 
-from hyperstone.util import log, tabbed_print
+from hyperstone.util.formatting import tabbed_print
 from hyperstone.emulator import HyperEmu
+from hyperstone.util.logger import log
 
 
 def debug_instructions_hook(emu: HyperEmu):

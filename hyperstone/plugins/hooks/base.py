@@ -7,7 +7,7 @@ import megastone as ms
 from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookAlreadyRemovedError
-from hyperstone.util import log
+from hyperstone.util.logger import log
 
 
 @dataclass

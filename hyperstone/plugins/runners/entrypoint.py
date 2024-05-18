@@ -2,7 +2,7 @@ from typing import Any
 import megastone as ms
 
 from hyperstone.plugins.base import RunnerPlugin
-from hyperstone.util import log
+from hyperstone.util.logger import log
 
 
 class Entrypoint(RunnerPlugin):

@@ -2,9 +2,9 @@ from typing import Tuple, Optional
 import megastone as ms
 
 from hyperstone.emulator import HyperEmu
-from hyperstone.plugins import RunnerPlugin
+from hyperstone.plugins.base import RunnerPlugin
 from hyperstone.settings import SettingsType
-from hyperstone.util import log
+from hyperstone.util.logger import log
 
 
 def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Optional[RunnerPlugin]]:

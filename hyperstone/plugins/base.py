@@ -1,11 +1,11 @@
-import abc
 from abc import abstractmethod
-from itertools import chain
 from typing import Optional, Iterable, Type, TypeVar, List, Any, Union
 
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSPluginNotFoundError
-from hyperstone.util import log, LazyResolver
+from hyperstone.util.logger import log
+from hyperstone.util.resolver import LazyResolver
+
 
 IMPORTED_PLUGIN_NAME = 'HYPERSTONE_REQUIRE__{name}_'
 

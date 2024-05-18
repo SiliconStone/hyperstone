@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from hyperstone.plugins.memory.streams.stream import Stream
+from hyperstone.util.resolver import LazyResolver
 from hyperstone.emulator import HyperEmu
-from hyperstone.util import LazyResolver
 
 
 @dataclass

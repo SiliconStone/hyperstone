@@ -1,7 +1,5 @@
 from typing import Iterable, Dict, Any, List
 
-from hyperstone.util.logger import log
-
 
 TAB_SIZE = 8
 DEFAULT_TAB_COUNT = 1

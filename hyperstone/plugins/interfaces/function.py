@@ -3,9 +3,8 @@ from typing import Tuple, Optional, Dict, Any, Type
 
 from hyperstone.plugins.base import Plugin, RunnerPlugin
 from hyperstone.plugins.runners import FunctionEntrypoint
-from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HyperstonePluginError, HSPluginInteractNotReadyError
-from hyperstone.util import log
+from hyperstone.util.logger import log
 
 
 @dataclass(frozen=True)
