@@ -14,13 +14,12 @@ from hyperstone.util.logger import log
 class HookInfo:
     name: str
     address: Optional[Union[int, Callable[[], int]]]
-    return_address: Optional[Union[int, Callable[[], int]]]
+    return_address: Optional[Union[int, Callable[[], int]]] = None
     callback: Optional[Callable[[HyperEmu, Dict[str, Any]], Any]] = None
     size: int = 1
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
-    _return_address: Union[int, Callable[[], int]] = field(init=False, repr=False)
 
     @property
     def address(self):
@@ -29,14 +28,6 @@ class HookInfo:
     @address.setter
     def address(self, value):
         self._address = value
-
-    @property
-    def return_address(self):
-        return int(self._return_address) if self._return_address is not None else None
-
-    @return_address.setter
-    def return_address(self, value):
-        self._return_address = value
 
 
 @dataclass
@@ -97,6 +88,8 @@ class Hook(Plugin):
             hook_info.double_call = False
             if was_called:
                 return
+        else:
+            hook_info.return_address = int(hook_info.return_address)
 
         log_fn = log.debug if hook_info.name.startswith(Hook.SILENT) else log.info
 

@@ -53,7 +53,7 @@ class Segment(Plugin):
 
         raise KeyError(f'Segment {name} not mapped')
 
-    def query(self, name: str) -> SegmentInfo:
+    def __getitem__(self, name: str) -> SegmentInfo:
         """
         Gets a segment by name.
 

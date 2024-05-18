@@ -112,8 +112,7 @@ class Settings(hs.Settings):
         HookInfo(
             'MALLOC1__R0',
             MALLOC1__R0,
-            None,
-            lambda mu, _: eabi(mu, debug_malloc1)
+            callback=lambda mu, _: eabi(mu, debug_malloc1)
         ),
         HookInfo(
             'MALLOC2__R0',

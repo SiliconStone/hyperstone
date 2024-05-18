@@ -23,7 +23,7 @@ class Settings(hs.Settings):
 
     HOOKS = hs.plugins.hooks.Hook()
 
-    ENTRY = hs.plugins.runners.FunctionEntrypoint(LOADER['peloader/upx.exe'].entrypoint)
+    ENTRY = hs.plugins.runners.FunctionEntrypoint(LOADER.query('peloader/upx.exe').entrypoint)
 
 
 def main():
