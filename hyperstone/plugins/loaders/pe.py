@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Optional, Dict, List, Callable, Any, Self
+from typing import Optional, Dict, List, Callable, Any#, Self
+from typing_extensions import Self
 
 import random
 import lief.PE
@@ -440,7 +441,6 @@ class PELoader(Plugin):
                 self.emu.mem.write_word(reloc_offset, old_val - parsed.imagebase + base)
 
     def _phantom_hook_callback(self, emu: HyperEmu, ctx: Dict[str, Any]):
-        old_pc = emu.pc
 
         hook: ActiveHook = ctx[self._hook_plugin.CTX_HOOK]
         hook_fn = hook.type.name.split(self._IAT_HOOK_SEP)[-1]
@@ -448,5 +448,3 @@ class PELoader(Plugin):
         if hook_fn in self._iat_hooks and self._iat_hooks[hook_fn] is not None:
             self._iat_hooks[hook_fn](emu, ctx)
 
-        if old_pc == emu.pc:
-            emu.pc = 0xBADCA77

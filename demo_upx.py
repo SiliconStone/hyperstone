@@ -9,17 +9,9 @@ class Settings(hs.Settings):
     SEGMENTS = hs.plugins.memory.Segment()
 
     LOADER = hs.plugins.loaders.PELoader(
-        PELoaderInfo('peloader/upx.exe', map_header_rwx=True)
-    ).missing_iat(
-        'KERNEL32.DLL!LoadLibraryA',
-        lambda mu, _: (hs.log.debug(mu.mem.read_cstring(mu.regs.rcx)), hs.hooks.ret(mu, 0xdeaddef0))
-    ).missing_iat(
-        'KERNEL32.DLL!GetProcAddress',
-        lambda mu, _: (hs.log.debug(mu.mem.read_cstring(mu.regs.rdx)), hs.hooks.ret(mu, 0xdeaddef0))
-    ).missing_iat(
-        'KERNEL32.DLL!VirtualProtect',
-        lambda mu, _: (hs.hooks.ret(mu, 0))
-    )
+        PELoaderInfo('peloader/upx.exe', map_header_rwx=True))
+    
+    FAKE_DLL = hs.plugins.hooks.FakeDll()
 
     HOOKS = hs.plugins.hooks.Hook()
 
