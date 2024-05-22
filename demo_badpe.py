@@ -15,7 +15,7 @@ SETTINGS = [
         PELoaderInfo('peloader/FooBar.dll')
     ),
 
-    hs.plugins.memory.mappers.InitializeSupportStack(),
+    hs.plugins.memory.InitializeSupportStack(),
 
     # Comment/Uncomment this line to see how hyperstone behaves with PE
     hs.plugins.memory.EnforceMemory(),

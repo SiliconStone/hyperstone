@@ -15,7 +15,7 @@ SETTINGS = [
         PELoaderInfo('peloader/FooBar.dll', prefer_aslr=True)
     ),
 
-    hs.plugins.memory.mappers.InitializeSupportStack(),
+    hs.plugins.memory.InitializeSupportStack(),
 
     hs.plugins.memory.EnforceMemory(),
 
