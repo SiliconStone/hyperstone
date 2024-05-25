@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, Dict, List, Callable, Any#, Self
-from typing_extensions import Self
+from typing import Optional, Dict, List, Callable, Any, Self
 
+import os
 import random
 import lief.PE
 import megastone as ms
@@ -34,6 +34,7 @@ class PELoaderInfo:
         prefer_aslr: Should we try to map with ASLR enabled?
         map_sections_rwx: Should map the header as RWX?
     """
+
     file: FileNameType
     base: Optional[int] = None
     prefer_aslr: bool = False
@@ -55,7 +56,14 @@ class MappedPE:
             if func.name == name:
                 return self.base + func.address
 
-        log.error(f"Function {name} not found")
+        log.error(f'Function {name} not found')
+
+
+@dataclass
+class FakeExport:
+    base: int = 0
+    current_base: int = 0
+    functions: Dict[str, int] = field(default_factory=lambda: {})
 
 
 def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
@@ -98,7 +106,7 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
     """
     base_value = 0
     if high_entropy and is_dll:
-        base_value = 0x0000_7ff0_0000_0000  # 7FF8_0003_5ECB_0000
+        base_value = 0x0000_7FF0_0000_0000  # 7FF8_0003_5ECB_0000
         bits_amount = 19
     elif high_entropy and not is_dll:
         bits_amount = 17
@@ -120,7 +128,7 @@ def section_perms_to_ms(section: lief.PE.Section) -> ms.AccessType:
         access |= ms.AccessType.X
 
     if access & ms.AccessType.WX == ms.AccessType.WX:
-        log.info(f"WX Detected for {section.name}")
+        log.info(f'WX Detected for {section.name}')
 
     return access
 
@@ -130,23 +138,57 @@ class PELoader(Plugin):
     Loads PE files from disk.
     interact() can be used to map a PE file.
     """
-    _INTERACT_TYPE = PELoaderInfo
-    _IAT_HOOK_SEP = '@'
 
-    def __init__(self, *files: PELoaderInfo):
+    _INTERACT_TYPE = PELoaderInfo
+    _IAT_HOOK_SEP = "@"
+
+    def __init__(self, *files: PELoaderInfo, dll_search_paths: List[str] = None):
+        if dll_search_paths is None:
+            dll_search_paths = []
+
+        self._available_pes: Dict[str, str] = {}
+        for directory in reversed(dll_search_paths):
+            current_path = os.path.expandvars(directory)
+            for item in os.listdir(current_path):
+                self._available_pes[item.lower()] = os.path.join(
+                    current_path, item
+                ).lower()
+
+        for item in files:
+            self._available_pes[item.file.lower()] = item.file.lower()
+
         super().__init__(*files)
+
         self._loaded: Dict[FileNameType, MappedPE] = {}
-        self._phantom_hooks: Dict[str, Dict[str, int]] = {}
+        self._fake_exports: Dict[str, FakeExport] = {}
         self._iat_hooks: Dict[str, Callable[[HyperEmu, dict], Any]] = {}
         self._segment_plugin: Optional[Segment] = None
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
 
+    def __phantomize_dll(self, dll_name: str):
+        phantom_dll = lief.PE.parse(self._available_pes[dll_name.lower()].lower())
+        import_table = phantom_dll.data_directory(
+            lief.PE.DataDirectory.TYPES.IMPORT_TABLE
+        )
+        import_section = import_table.section
+        export_table = phantom_dll.data_directory(
+            lief.PE.DataDirectory.TYPES.EXPORT_TABLE
+        )
+        export_section = export_table.section
+
+        for section in phantom_dll.sections:
+            if section != export_section:
+                if import_section is not None and section == import_section:
+                    continue
+                section.content = [0] * section.size
+        return phantom_dll
+
     def __getitem__(self, item: FileNameType) -> MappedPE:
         return self._loaded[item]
 
-    def missing_iat(self, name: str, callback: Callable[[HyperEmu, dict], Any]) -> Self:
+    def missing_iat(self, name: str, callback: Callable[[HyperEmu, Dict], Any]) -> Self:
         """
         Put a hook on a IAT entry that wasn't loaded
         Args:
@@ -164,12 +206,14 @@ class PELoader(Plugin):
         self._stream_mapper = Plugin.require(StreamMapper, self.emu)
         for plugin in Plugin.get_all_loaded(Hook, self.emu):
             self._hook_plugin = plugin
-            log.info('Found Hook plugin, will attempt to hook every missing IAT entry')
+            log.info("Found Hook plugin, will attempt to hook every missing IAT entry")
             break
         for plugin in Plugin.get_all_loaded(EnforceMemory, self.emu):
             self._enforce_plugin = plugin
-            log.info("Found EnforceMemory plugin, promoting StreamMapper and mapping all Segments as RWX to override "
-                     "megastone page protection system.")
+            log.info(
+                "Found EnforceMemory plugin, promoting StreamMapper and mapping all Segments as RWX to override "
+                "megastone page protection system."
+            )
 
             # Need stream_mapper to act instantly in case of EnforceMemory
             # That way, we can use EnforceMemory with a mapped ms.Segment
@@ -177,16 +221,22 @@ class PELoader(Plugin):
             break
 
     def _handle(self, obj: PELoaderInfo):
-        if obj.file in self._loaded.keys():
+        if obj.file.lower() in self._loaded.keys():
             return
 
+        if obj.file.lower() not in self._available_pes:
+            log.error(f'Couldn\'t find {obj.file}')
+            return
         log.info(f'Mapping PE {obj}')
-        parsed = lief.PE.parse(obj.file)
+        full_file_name = self._available_pes[obj.file.lower()]
+        parsed = lief.PE.parse(full_file_name)
+        self._handle_binary(obj, parsed)
 
+    def _handle_binary(self, obj: PELoaderInfo, parsed: lief.PE):
         # Pick base address
         base_address = self._pick_base(obj, parsed)
         mapped = MappedPE(obj, base_address, parsed)
-        self._loaded[obj.file] = mapped
+        self._loaded[obj.file.lower()] = mapped
 
         # Map main file
         self._map_headers(mapped)
@@ -237,25 +287,35 @@ class PELoader(Plugin):
         # Respect user's request first and foremost
         if obj.base is not None:
             if not parsed.is_pie:
-                log.error(f'PE {obj} is not PIE, cannot respect user requested base {obj.base:#X}')
+                log.error(
+                    f'PE {obj} is not PIE, cannot respect user requested base {obj.base:#X}'
+                )
             elif self.is_base_ok(obj.base, parsed.virtual_size):
                 return obj.base
             else:
                 log.warning(f'PE {obj} cannot be mapped to {obj.base=:#X}')
 
         prefer_aslr = obj.prefer_aslr
-        prefer_aslr &= parsed.optional_header.has(lief.PE.OptionalHeader.DLL_CHARACTERISTICS.DYNAMIC_BASE)
+        prefer_aslr &= parsed.optional_header.has(
+            lief.PE.OptionalHeader.DLL_CHARACTERISTICS.DYNAMIC_BASE
+        )
 
         if not prefer_aslr:
             # Attempt to respect base:
             if self.is_base_ok(parsed.imagebase, parsed.virtual_size):
                 return parsed.imagebase
             else:
-                log.warning(f'PE {obj} cannot be mapped at preferred base, falling back to ASLR')
+                log.warning(
+                    f'PE {obj} cannot be mapped at preferred base, falling back to ASLR'
+                )
 
         if parsed.is_pie:
-            high_entropy = parsed.optional_header.has(lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA)
-            is_dll = parsed.header.has_characteristic(lief.PE.Header.CHARACTERISTICS.DLL)
+            high_entropy = parsed.optional_header.has(
+                lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA
+            )
+            is_dll = parsed.header.has_characteristic(
+                lief.PE.Header.CHARACTERISTICS.DLL
+            )
             base = calculate_aslr(high_entropy, is_dll) + parsed.imagebase
 
             retry = 5
@@ -265,12 +325,16 @@ class PELoader(Plugin):
                 base = calculate_aslr(high_entropy, is_dll)
 
             if self.is_base_ok(base, parsed.virtual_size):
-                log.debug(f'Generated ASLR {base:#X} for {obj}, {is_dll=} {high_entropy=}')
+                log.debug(
+                    f'Generated ASLR {base:#X} for {obj}, {is_dll=} {high_entropy=}'
+                )
                 return base
 
             log.error(f'ASLR attempt was futile, giving up')
 
-        log.error(f'Cannot map PE {obj} - No PIE/ASLR Fail, cannot respect base nor user base.')
+        log.error(
+            f'Cannot map PE {obj} - No PIE/ASLR Fail, cannot respect base nor user base.'
+        )
         raise HSPluginBadStateError(f'Unable to map PE {obj}')
 
     def _map_headers(self, mapped: MappedPE):
@@ -278,17 +342,21 @@ class PELoader(Plugin):
             raise HSPluginInteractNotReadyError(f'{mapped.info=}')
 
         pefile = mapped.info
+        pefile_name = pefile.file
+        if pefile_name in self._available_pes:
+            pefile_name = self._available_pes[pefile_name]
+
         perm = ms.AccessType.RWX if pefile.map_header_rwx else ms.AccessType.R
 
         self._stream_mapper.interact(
             StreamMapperInfo(
-                stream=FileStream(pefile.file),
+                stream=FileStream(pefile_name),
                 segment=SegmentInfo(
-                    f'PE.HEADER."{pefile.file}"',
+                    f'PE.HEADER."{pefile_name}"',
                     mapped.base,
                     mapped.pe.sizeof_headers,
-                    perms=perm
-                )
+                    perms=perm,
+                ),
             )
         )
 
@@ -308,15 +376,17 @@ class PELoader(Plugin):
         pefile = mapped.info
         segment_name = f'PE.SECTION."{pefile.file}"."{section.name}"'
         log.debug(f'Mapping section {section.name} of {pefile}')
-        self._stream_mapper.interact(StreamMapperInfo(
-            stream=RawStream(section.content.tobytes()),
-            segment=SegmentInfo(
-                segment_name,
-                mapped.base + section.virtual_address,
-                section.virtual_size,
-                permission
+        self._stream_mapper.interact(
+            StreamMapperInfo(
+                stream=RawStream(section.content.tobytes()),
+                segment=SegmentInfo(
+                    segment_name,
+                    mapped.base + section.virtual_address,
+                    section.virtual_size,
+                    permission,
+                ),
             )
-        ))
+        )
 
         if self._enforce_plugin is not None:
             # Force our mapper to work now in order to be able to pull the ms.Segment object
@@ -339,21 +409,31 @@ class PELoader(Plugin):
             loaded_item = None
 
             for loaded in self._loaded.copy():
-                if dependency.name not in loaded:
+                if dependency.name.lower() not in loaded:
                     for item in self._interact_queue:
                         item: PELoaderInfo
-                        if dependency.name in item.file:
+                        if dependency.name.lower() in item.file.lower():
                             self._handle(item)  # Load our dependency real quick
                             loaded_item = self._loaded[item.file]
                             break
                 else:
-                    loaded_item = self._loaded[loaded]
+                    loaded_item = self._loaded[loaded.lower()]
                     break
             else:
                 if loaded_item is None:
-                    log.warning(f'IAT dependency {dependency.name} for {mapped.info} not found.')
-                    self._handle_missing_iat(dependency, mapped)
-                    continue
+                    if dependency.name.lower() in self._available_pes:
+                        phantomized = self.__phantomize_dll(dependency.name.lower())
+                        self._handle_binary(
+                            PELoaderInfo(dependency.name.lower(), prefer_aslr=True),
+                            phantomized,
+                        )
+                        loaded_item = self._loaded[dependency.name.lower()]
+                    else:
+                        log.warning(
+                            f'IAT dependency {dependency.name} for {mapped.info} not found.'
+                        )
+                        self._handle_missing_iat(dependency, mapped)
+                        continue
 
             self._load_iat(mapped, dependency, loaded_item)
 
@@ -363,7 +443,6 @@ class PELoader(Plugin):
 
         my_base = mapped.base
         exports = {}
-
         parsed = self._loaded[lib.info.file].pe
         for export in parsed.get_export().entries:
             export: lief.PE.ExportEntry
@@ -372,55 +451,73 @@ class PELoader(Plugin):
         for entry in dependency.entries:
             entry: lief.PE.ImportEntry
             if entry.name not in exports:
-                log.error(f'IAT dependency {dependency.name} missing symbol {entry.name} for {mapped.info}.')
+                log.error(
+                    f'IAT dependency {dependency.name} missing symbol {entry.name} for {mapped.info}.'
+                )
                 continue
 
             export = exports[entry.name]
             log.debug(f'Loading IAT {dependency.name}!{export.name} for {mapped.info}')
-            self.emu.mem.write_word(my_base + entry.iat_address, lib.base + export.function_rva)
+            self.emu.mem.write_word(
+                my_base + entry.iat_address, lib.base + export.function_rva
+            )
 
     def _handle_missing_iat(self, dependency: lief.PE.Import, mapped: MappedPE):
-        if dependency.name not in self._phantom_hooks:
-            self._phantom_hooks[dependency.name] = {}
-
-        base = self.map_fake_dll(dependency, mapped)
+        if dependency.name not in self._fake_exports:
+            self._fake_exports[dependency.name] = FakeExport()
+            self._fake_exports[dependency.name].base = self.map_fake_dll(
+                dependency, mapped
+            )
+            self._fake_exports[dependency.name].current_base = self._fake_exports[dependency.name].base
 
         for entry in dependency.entries:
             entry: lief.PE.ImportEntry
-            if entry in self._phantom_hooks[dependency.name]:
-                log.warning(f'IAT dependency {dependency.name}!{entry.name} mapped at '
-                            f'{self._phantom_hooks[dependency.name][entry.name]:#X}')
-                continue
 
             my_base = mapped.base
-
-            self._phantom_hooks[dependency.name][entry.name] = base
-            self.emu.mem.write_word(my_base + entry.iat_address, base)
+            if not entry.name in self._fake_exports[dependency.name].functions:
+                self._fake_exports[dependency.name].functions[entry.name] = (
+                    self._fake_exports[dependency.name].current_base
+                )
+                self._fake_exports[
+                    dependency.name
+                ].current_base += self.emu.arch.word_size
+            self.emu.mem.write_word(
+                my_base + entry.iat_address,
+                self._fake_exports[dependency.name].functions[entry.name],
+            )
 
             if self._hook_plugin is not None:
-                self._hook_plugin.interact(HookInfo(
-                    f'IAT{self._IAT_HOOK_SEP}{dependency.name}!{entry.name}',
-                    base,
-                    None,
-                    self._phantom_hook_callback,
-                ))
+                self._hook_plugin.interact(
+                    HookInfo(
+                        f'IAT{self._IAT_HOOK_SEP}{dependency.name}!{entry.name}',
+                        self._fake_exports[dependency.name].functions[entry.name],
+                        None,
+                        self._phantom_hook_callback,
+                    )
+                )
             else:
-                log.error('No Hook plugin was loaded in the current project. '
-                          'Please load one if you want to use IAT hooks feature')
-            base += self.emu.arch.word_size
+                log.error(
+                    "No Hook plugin was loaded in the current project. "
+                    "Please load one if you want to use IAT hooks feature"
+                )
 
     def map_fake_dll(self, dependency: lief.PE.Import, mapped: MappedPE) -> int:
         parsed = mapped.pe
         retry = 5
         base = 0
-        is64 = parsed.optional_header.has(lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA)
+        is64 = parsed.optional_header.has(
+            lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA
+        )
         while (not self.is_base_ok(base, parsed.virtual_size)) and retry > 0:
             retry -= 1
             base = calculate_aslr(is64, True)
 
         self._segment_plugin.interact(
-            SegmentInfo(f'IAT PLT for {dependency.name}', base,
-                        len(dependency.entries) * self.emu.arch.word_size)
+            SegmentInfo(
+                f'IAT PLT for {dependency.name}',
+                base,
+                len(dependency.entries) * self.emu.arch.word_size,
+            )
         )
 
         return base
@@ -447,4 +544,3 @@ class PELoader(Plugin):
 
         if hook_fn in self._iat_hooks and self._iat_hooks[hook_fn] is not None:
             self._iat_hooks[hook_fn](emu, ctx)
-
