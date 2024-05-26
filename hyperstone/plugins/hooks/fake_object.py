@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from collections import defaultdict
 from hyperstone.util.logger import log
 from hyperstone.plugins.base import Plugin
@@ -8,7 +8,8 @@ GLOBAL_FUNCTION_INDEX = 1
 
 
 class Object:
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        self.name = name
         self.functions = defaultdict(lambda: 0)
 
     def add_dummy_function(self, name: str) -> None:
@@ -32,7 +33,7 @@ class FakeObject(Plugin):
         """
         Hooks functions it receives in args, their format should be ObjectName!FunctionName
         """
-        self.function_list: list[str] = [*args]
+        self.function_list: List[str] = [*args]
         super().__init__()
 
     def _prepare(self) -> None:
@@ -44,19 +45,21 @@ class FakeObject(Plugin):
             object_name, function_name = export_name.split("!")
             export_address = self._resolve_export(object_name, function_name)
             log.debug(
-                f"{object_name}!{function_name}@{'None' if not export_address else hex(export_address)}"
+                f'{object_name}!{function_name}@{"None" if not export_address else hex(export_address)}'
             )
             if export_address is not None:
                 self._hook_plugin.interact(
                     HookInfo(
-                        f"{type(self).__name__}.{object_name}!{function_name}",
+                        f'{type(self).__name__}.{object_name}!{function_name}',
                         export_address,
                         None,
                         getattr(self, function_name),
                     )
                 )
 
-    def _resolve_export_fallback(self, object_name: str, function_name: str) -> int | None:
+    def _resolve_export_fallback(
+        self, object_name: str, function_name: str
+    ) -> int | None:
         """
         Implement this to help resolve exported functions using the correct loader
         """
@@ -68,7 +71,7 @@ class FakeObject(Plugin):
         """
         object_address = self._get_or_add_object(object_name)
         if not object_address in EXPORT_FUNCTION_RESOLVER:
-            EXPORT_FUNCTION_RESOLVER[object_address] = Object()
+            EXPORT_FUNCTION_RESOLVER[object_address] = Object(object_name)
 
         current_object = EXPORT_FUNCTION_RESOLVER[object_address]
         if not function_name in current_object.functions:
@@ -98,9 +101,22 @@ class FakeObject(Plugin):
         """
         Utility function to get fake function addresses by objects handle and the function name
         """
+        object_base_to_names = {v: k for k, v in EXPORT_OBJECT_RESOLVER.items()}
         if object_handle not in EXPORT_FUNCTION_RESOLVER:
-            log.error(f"Object {[key for key, value in EXPORT_OBJECT_RESOLVER.items() if value == object_handle][0]} not implemented")
+            log.error(f'Object {object_base_to_names[object_handle]} not implemented')
         elif function_name not in EXPORT_FUNCTION_RESOLVER[object_handle].functions:
-            log.error(f"Function {function_name} not implemented")
+            log.error(f'Function {function_name} not implemented')
         else:
             return EXPORT_FUNCTION_RESOLVER[object_handle].functions[function_name]
+
+        return self._fallback_get_function_address(
+            object_base_to_names[object_handle], function_name
+        )
+
+    def _fallback_get_function_address(
+        self, object_name: str, function_name: str
+    ) -> int:
+        """
+        Let the inheriting classes resolve a function's address manually
+        """
+        pass

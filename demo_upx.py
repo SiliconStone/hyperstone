@@ -9,13 +9,17 @@ class Settings(hs.Settings):
     SEGMENTS = hs.plugins.memory.Segment()
 
     LOADER = hs.plugins.loaders.PELoader(
-        PELoaderInfo('peloader/upx.exe', map_header_rwx=True))
-    
+        PELoaderInfo("peloader/upx.exe", map_header_rwx=True),
+        dll_search_paths=["%windir%\\system32"],
+    )
+
     FAKE_DLL = hs.plugins.hooks.FakeDll()
 
     HOOKS = hs.plugins.hooks.Hook()
 
-    ENTRY = hs.plugins.runners.FunctionEntrypoint(LOADER.query('peloader/upx.exe').entrypoint)
+    ENTRY = hs.plugins.runners.FunctionEntrypoint(
+        LOADER.query("peloader/upx.exe").entrypoint
+    )
 
 
 def main():
@@ -35,5 +39,5 @@ def main():
     emu.mem.dump_to_file(header.address, header.size, 'header')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
