@@ -169,6 +169,9 @@ class PELoader(Plugin):
                     current_path, item
                 )
 
+        for obj in files:
+            self._available_pes[obj.name] = obj.file
+
         super().__init__(*files)
 
         self._loaded: Dict[FileNameType, MappedPE] = {}
@@ -178,10 +181,6 @@ class PELoader(Plugin):
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
-
-    @property
-    def fake_exports(self) -> Dict[str, FakeExport]:
-        return
 
     def __phantomize_dll(self, dll_name: FileNameType):
         phantom_dll = lief.PE.parse(self._available_pes[dll_name])
@@ -242,8 +241,6 @@ class PELoader(Plugin):
     def _handle(self, obj: PELoaderInfo):
         if obj.name in self._loaded.keys():
             return
-
-        self._available_pes[obj.name] = obj.file
 
         if obj.name not in self._available_pes:
             log.error(f'Couldn\'t find {obj.file}')
