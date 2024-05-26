@@ -7,8 +7,6 @@ if TYPE_CHECKING:
 
 
 class HyperEmu(ms.Emulator):
-    CTX_GLOBAL = '_GLOBAL'
-
     def __init__(self, arch: ms.Architecture, settings: 'SettingsType'):
         super().__init__(arch)
         self.settings = settings

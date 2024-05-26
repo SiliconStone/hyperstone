@@ -17,6 +17,7 @@ class HookInfo:
     return_address: Optional[Union[int, Callable[[], int]]] = None
     callback: Optional[Callable[[HyperEmu, Dict[str, Any]], Any]] = None
     size: int = 1
+    ctx: Dict[str, Any] = field(default_factory=dict)
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
@@ -60,10 +61,9 @@ class Hook(Plugin):
         return tuple(self._hooks)
 
     def _handle(self, hook: HookInfo):
-        ctx = {self.emu.CTX_GLOBAL: self.emu.context}
-        func = partial(Hook._hook, hook, ctx)
+        func = partial(Hook._hook, hook)
         active = self.add_hook(hook, func, ms.HookType.CODE)
-        ctx[self.CTX_HOOK] = active
+        hook.ctx[self.CTX_HOOK] = active
 
     def add_hook(self, hook: HookInfo, func: Union[Callable[[HyperEmu], None], ms.HookFunc],
                  access_type: ms.HookType) -> ActiveHook:
@@ -82,7 +82,7 @@ class Hook(Plugin):
         hook.obj = None
 
     @staticmethod
-    def _hook(hook_info: HookInfo, ctx: Dict[str, Any], emu: HyperEmu):
+    def _hook(hook_info: HookInfo, emu: HyperEmu):
         if hook_info.return_address is None:
             was_called = hook_info.double_call
             hook_info.double_call = False
@@ -97,7 +97,7 @@ class Hook(Plugin):
         old_pc = emu.pc
         func = hook_info.callback
         if func:
-            func(emu, ctx)
+            func(emu, hook_info.ctx)
 
         if hook_info.return_address is not None:
             emu.pc = hook_info.return_address
