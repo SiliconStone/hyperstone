@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, Dict, List, Callable, Any, Self, NewType
+from typing import Optional, Dict, List, Callable, Any, Self, NewType, Union
 
 import os
 import random
@@ -162,6 +162,8 @@ class PELoader(Plugin):
         self._available_pes: Dict[FileNameType, str] = {}
         for directory in reversed(dll_search_paths):
             current_path = os.path.expandvars(directory)
+            if not os.path.exists(current_path):
+                continue
             for item in os.listdir(current_path):
                 self._available_pes[file_to_name(item)] = os.path.join(
                     current_path, item
@@ -176,6 +178,10 @@ class PELoader(Plugin):
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
+
+    @property
+    def fake_exports(self) -> Dict[str, FakeExport]:
+        return
 
     def __phantomize_dll(self, dll_name: FileNameType):
         phantom_dll = lief.PE.parse(self._available_pes[dll_name])
@@ -195,8 +201,11 @@ class PELoader(Plugin):
                 section.content = [0] * section.size
         return phantom_dll
 
-    def __getitem__(self, item: FileNameType) -> MappedPE:
-        return self._loaded[item]
+    def __getitem__(self, item: Union[FileNameType, str]) -> MappedPE:
+        return self._loaded[file_to_name(item)]
+
+    def __contains__(self, item: Union[FileNameType, str]) -> bool:
+        return file_to_name(item) in self._loaded
 
     def missing_iat(self, name: str, callback: Callable[[HyperEmu, Dict], Any]) -> Self:
         """
