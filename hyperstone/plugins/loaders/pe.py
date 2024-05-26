@@ -47,7 +47,7 @@ class PELoaderInfo:
         Returns:
             Filename but lower
         """
-        return FileNameType(self.file.lower())
+        return file_to_name(self.file)
 
 
 @dataclass(frozen=True)
@@ -73,6 +73,10 @@ class FakeExport:
     base: int = 0
     current_base: int = 0
     functions: Dict[str, int] = field(default_factory=lambda: {})
+
+
+def file_to_name(file: str) -> FileNameType:
+    return FileNameType(file.lower())
 
 
 def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
@@ -159,7 +163,7 @@ class PELoader(Plugin):
         for directory in reversed(dll_search_paths):
             current_path = os.path.expandvars(directory)
             for item in os.listdir(current_path):
-                self._available_pes[FileNameType(item.lower())] = os.path.join(
+                self._available_pes[file_to_name(item)] = os.path.join(
                     current_path, item
                 )
 
@@ -420,7 +424,7 @@ class PELoader(Plugin):
                 if dependency.name.lower() not in loaded:
                     for item in self._interact_queue:
                         item: PELoaderInfo
-                        if FileNameType(dependency.name.lower()) in item.name:
+                        if file_to_name(dependency.name) in item.name:
                             self._handle(item)  # Load our dependency real quick
                             loaded_item = self._loaded[item.name]
                             break
@@ -429,13 +433,13 @@ class PELoader(Plugin):
                     break
             else:
                 if loaded_item is None:
-                    if FileNameType(dependency.name.lower()) in self._available_pes:
-                        phantomized = self.__phantomize_dll(FileNameType(dependency.name.lower()))
+                    if file_to_name(dependency.name) in self._available_pes:
+                        phantomized = self.__phantomize_dll(file_to_name(dependency.name))
                         self._handle_binary(
                             PELoaderInfo(dependency.name, prefer_aslr=True),
                             phantomized,
                         )
-                        loaded_item = self._loaded[FileNameType(dependency.name.lower())]
+                        loaded_item = self._loaded[file_to_name(dependency.name)]
                     else:
                         log.warning(
                             f'IAT dependency {dependency.name} for {mapped.info} not found.'
