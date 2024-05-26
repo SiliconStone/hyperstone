@@ -200,6 +200,12 @@ class PELoader(Plugin):
                 section.content = [0] * section.size
         return phantom_dll
 
+    def has_fake_export(self, export_name: str) -> bool:
+        return export_name in self._fake_exports
+
+    def fake_export(self, export_name: str) -> FakeExport:
+        return self._fake_exports[export_name]
+
     def __getitem__(self, item: Union[FileNameType, str]) -> MappedPE:
         return self._loaded[file_to_name(item)]
 
