@@ -13,7 +13,7 @@ SETTINGS = [
         )
     ),
 
-    hs.plugins.memory.mappers.InitializeSupportStack(),
+    hs.plugins.memory.InitializeSupportStack(),
 
     # hs.plugins.memory.EnforceMemory(),
 
