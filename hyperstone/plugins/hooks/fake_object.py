@@ -14,7 +14,7 @@ class Object:
 
     def add_dummy_function(self, name: str) -> None:
         """
-        We don't want to program to exit for non implemented functions
+        We don't want to program to exit for non-implemented functions,
         and we want to know which function did we try to jump to
         """
         global GLOBAL_FUNCTION_INDEX
@@ -29,6 +29,9 @@ EXPORT_FUNCTION_RESOLVER: Dict[int, Object] = {}
 
 
 class FakeObject(Plugin):
+    def _handle(self, obj):
+        pass
+
     def __init__(self, *args: str):
         """
         Hooks functions it receives in args, their format should be ObjectName!FunctionName
@@ -70,11 +73,11 @@ class FakeObject(Plugin):
         Returns the address on which a hook for the function should be placed
         """
         object_address = self._get_or_add_object(object_name)
-        if not object_address in EXPORT_FUNCTION_RESOLVER:
+        if object_address not in EXPORT_FUNCTION_RESOLVER:
             EXPORT_FUNCTION_RESOLVER[object_address] = Object(object_name)
 
         current_object = EXPORT_FUNCTION_RESOLVER[object_address]
-        if not function_name in current_object.functions:
+        if function_name not in current_object.functions:
             fallback_result = self._resolve_export_fallback(object_name, function_name)
             if fallback_result:
                 current_object.functions[function_name] = fallback_result
@@ -103,9 +106,11 @@ class FakeObject(Plugin):
         """
         object_base_to_names = {v: k for k, v in EXPORT_OBJECT_RESOLVER.items()}
         if object_handle not in EXPORT_FUNCTION_RESOLVER:
-            log.error(f'Object {object_base_to_names[object_handle]} not implemented')
+            log.error(f'Object {object_base_to_names[object_handle]} not implemented '
+                      f'[{object_base_to_names[object_handle]}!{function_name}]')
         elif function_name not in EXPORT_FUNCTION_RESOLVER[object_handle].functions:
-            log.error(f'Function {function_name} not implemented')
+            log.error(f'Function {function_name} not implemented '
+                      f'[{object_base_to_names[object_handle]}!{function_name}]')
         else:
             return EXPORT_FUNCTION_RESOLVER[object_handle].functions[function_name]
 

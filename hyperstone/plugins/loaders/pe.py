@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, Dict, List, Callable, Any, Self
+from typing import Optional, Dict, List, Callable, Any, Self, NewType, Union
 
 import os
 import random
@@ -20,7 +20,7 @@ from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStat
 from hyperstone.util.logger import log
 
 
-FileNameType = str
+FileNameType = NewType("FileNameType", str)
 
 
 @dataclass(frozen=True)
@@ -35,10 +35,19 @@ class PELoaderInfo:
         map_sections_rwx: Should map the header as RWX?
     """
 
-    file: FileNameType
+    file: str
     base: Optional[int] = None
     prefer_aslr: bool = False
     map_header_rwx: bool = False
+
+    @property
+    def name(self) -> FileNameType:
+        """
+        Returns the filename as an ID
+        Returns:
+            Filename but lower
+        """
+        return file_to_name(self.file)
 
 
 @dataclass(frozen=True)
@@ -64,6 +73,10 @@ class FakeExport:
     base: int = 0
     current_base: int = 0
     functions: Dict[str, int] = field(default_factory=lambda: {})
+
+
+def file_to_name(file: str) -> FileNameType:
+    return FileNameType(file.lower())
 
 
 def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
@@ -146,16 +159,18 @@ class PELoader(Plugin):
         if dll_search_paths is None:
             dll_search_paths = []
 
-        self._available_pes: Dict[str, str] = {}
+        self._available_pes: Dict[FileNameType, str] = {}
         for directory in reversed(dll_search_paths):
             current_path = os.path.expandvars(directory)
+            if not os.path.exists(current_path):
+                continue
             for item in os.listdir(current_path):
-                self._available_pes[item.lower()] = os.path.join(
+                self._available_pes[file_to_name(item)] = os.path.join(
                     current_path, item
-                ).lower()
+                )
 
-        for item in files:
-            self._available_pes[item.file.lower()] = item.file.lower()
+        for obj in files:
+            self._available_pes[obj.name] = obj.file
 
         super().__init__(*files)
 
@@ -167,8 +182,8 @@ class PELoader(Plugin):
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
 
-    def __phantomize_dll(self, dll_name: str):
-        phantom_dll = lief.PE.parse(self._available_pes[dll_name.lower()].lower())
+    def __phantomize_dll(self, dll_name: FileNameType):
+        phantom_dll = lief.PE.parse(self._available_pes[dll_name])
         import_table = phantom_dll.data_directory(
             lief.PE.DataDirectory.TYPES.IMPORT_TABLE
         )
@@ -185,8 +200,17 @@ class PELoader(Plugin):
                 section.content = [0] * section.size
         return phantom_dll
 
-    def __getitem__(self, item: FileNameType) -> MappedPE:
-        return self._loaded[item]
+    def has_fake_export(self, export_name: str) -> bool:
+        return export_name in self._fake_exports
+
+    def fake_export(self, export_name: str) -> FakeExport:
+        return self._fake_exports[export_name]
+
+    def __getitem__(self, item: Union[FileNameType, str]) -> MappedPE:
+        return self._loaded[file_to_name(item)]
+
+    def __contains__(self, item: Union[FileNameType, str]) -> bool:
+        return file_to_name(item) in self._loaded
 
     def missing_iat(self, name: str, callback: Callable[[HyperEmu, Dict], Any]) -> Self:
         """
@@ -221,14 +245,14 @@ class PELoader(Plugin):
             break
 
     def _handle(self, obj: PELoaderInfo):
-        if obj.file.lower() in self._loaded.keys():
+        if obj.name in self._loaded.keys():
             return
 
-        if obj.file.lower() not in self._available_pes:
+        if obj.name not in self._available_pes:
             log.error(f'Couldn\'t find {obj.file}')
             return
         log.info(f'Mapping PE {obj}')
-        full_file_name = self._available_pes[obj.file.lower()]
+        full_file_name = self._available_pes[obj.name]
         parsed = lief.PE.parse(full_file_name)
         self._handle_binary(obj, parsed)
 
@@ -236,7 +260,7 @@ class PELoader(Plugin):
         # Pick base address
         base_address = self._pick_base(obj, parsed)
         mapped = MappedPE(obj, base_address, parsed)
-        self._loaded[obj.file.lower()] = mapped
+        self._loaded[obj.name] = mapped
 
         # Map main file
         self._map_headers(mapped)
@@ -342,7 +366,7 @@ class PELoader(Plugin):
             raise HSPluginInteractNotReadyError(f'{mapped.info=}')
 
         pefile = mapped.info
-        pefile_name = pefile.file
+        pefile_name = pefile.name
         if pefile_name in self._available_pes:
             pefile_name = self._available_pes[pefile_name]
 
@@ -412,22 +436,22 @@ class PELoader(Plugin):
                 if dependency.name.lower() not in loaded:
                     for item in self._interact_queue:
                         item: PELoaderInfo
-                        if dependency.name.lower() in item.file.lower():
+                        if file_to_name(dependency.name) in item.name:
                             self._handle(item)  # Load our dependency real quick
-                            loaded_item = self._loaded[item.file]
+                            loaded_item = self._loaded[item.name]
                             break
                 else:
-                    loaded_item = self._loaded[loaded.lower()]
+                    loaded_item = self._loaded[loaded]
                     break
             else:
                 if loaded_item is None:
-                    if dependency.name.lower() in self._available_pes:
-                        phantomized = self.__phantomize_dll(dependency.name.lower())
+                    if file_to_name(dependency.name) in self._available_pes:
+                        phantomized = self.__phantomize_dll(file_to_name(dependency.name))
                         self._handle_binary(
-                            PELoaderInfo(dependency.name.lower(), prefer_aslr=True),
+                            PELoaderInfo(dependency.name, prefer_aslr=True),
                             phantomized,
                         )
-                        loaded_item = self._loaded[dependency.name.lower()]
+                        loaded_item = self._loaded[file_to_name(dependency.name)]
                     else:
                         log.warning(
                             f'IAT dependency {dependency.name} for {mapped.info} not found.'
@@ -443,7 +467,7 @@ class PELoader(Plugin):
 
         my_base = mapped.base
         exports = {}
-        parsed = self._loaded[lib.info.file].pe
+        parsed = self._loaded[lib.info.name].pe
         for export in parsed.get_export().entries:
             export: lief.PE.ExportEntry
             exports[export.name] = export

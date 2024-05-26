@@ -7,8 +7,9 @@ from hyperstone.plugins.loaders import PELoader, PELoaderInfo
 from hyperstone.plugins.loaders.pe import calculate_aslr
 
 
+# noinspection PyPep8Naming
+# Windows function names
 class FakeDll(FakeObject):
-
     def __init__(self, *args: str):
         super().__init__(
             "KERNEL32.DLL!LoadLibraryA",
@@ -23,32 +24,29 @@ class FakeDll(FakeObject):
         super()._prepare()
 
     def _resolve_export_fallback(
-        self, object_name: str, function_name: str
+            self, object_name: str, function_name: str
     ) -> int | None:
-        if (
-            object_name in self._pe._fake_exports
-            and function_name in self._pe._fake_exports[object_name].functions
-        ):
-            return self._pe._fake_exports[object_name].functions[function_name]
+        if self._pe.has_fake_export(object_name) and function_name in self._pe.fake_export(object_name).functions:
+            return self._pe.fake_export(object_name).functions[function_name]
 
-        if object_name.lower() in self._pe._loaded:
-            function_address = self._pe._loaded[object_name.lower()].function(
+        if object_name in self._pe:
+            function_address = self._pe[object_name].function(
                 function_name
             )
             if function_address:
                 return function_address
 
     def _create_or_resolve_object_handle(self, name: str) -> int:
-        if name.lower() not in self._pe._loaded:
+        if name not in self._pe:
             self._pe.interact(PELoaderInfo(name))
-        if name.lower() in self._pe._loaded:
-            return self._pe._loaded[name.lower()].base
-        elif name.lower() in self._pe._fake_exports:
-            return self._pe._fake_exports[name.lower()].base
+        if name in self._pe:
+            return self._pe[name].base
+        elif self._pe.has_fake_export(name.lower()):
+            return self._pe.fake_export(name.lower()).base
         else:
             return calculate_aslr(self.emu.arch.bits == 64, True)
 
-    def LoadLibrary(self, emu: HyperEmu, ctx: Dict[str, Any], name: str) -> None:
+    def LoadLibrary(self, emu: HyperEmu, _: Dict[str, Any], name: str) -> None:
         library_place = self._get_or_add_object(name)
         emu.return_from_function(library_place)
 
@@ -70,5 +68,5 @@ class FakeDll(FakeObject):
         emu.return_from_function(func_address)
 
     def _fallback_get_function_address(self, object_name: str, function_name: str):
-        if object_name.lower() in self._pe._loaded:
-            return self._pe._loaded[object_name.lower()].function(function_name)
+        if object_name in self._pe:
+            return self._pe[object_name].function(function_name)
