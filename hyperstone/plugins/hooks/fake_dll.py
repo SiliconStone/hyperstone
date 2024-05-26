@@ -38,7 +38,7 @@ class FakeDll(FakeObject):
 
     def _create_or_resolve_object_handle(self, name: str) -> int:
         if name not in self._pe:
-            self._pe.interact(PELoaderInfo(name))
+            self._pe.interact(PELoaderInfo(name, fake=True))
         if name in self._pe:
             return self._pe[name].base
         elif self._pe.has_fake_export(name.lower()):
@@ -59,7 +59,7 @@ class FakeDll(FakeObject):
     def LoadLibraryW(self, emu: HyperEmu, ctx: Dict[str, Any]) -> None:
         pass
 
-    def GetProcAddress(self, emu: HyperEmu, ctx: Dict[str, Any]) -> None:
+    def GetProcAddress(self, emu: HyperEmu, _: Dict[str, Any]) -> None:
         # TODO make this code architecture generic
         func_name = emu.mem.read_cstring(emu.regs.rdx)
         func_address = self._get_function_address(emu.regs.rcx, func_name)

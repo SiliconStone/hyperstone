@@ -33,12 +33,14 @@ class PELoaderInfo:
         base: An optional base address for the PE file
         prefer_aslr: Should we try to map with ASLR enabled?
         map_sections_rwx: Should map the header as RWX?
+        fake: Is a fake DLL (instead of a real file)?
     """
 
     file: str
     base: Optional[int] = None
     prefer_aslr: bool = False
     map_header_rwx: bool = False
+    fake: bool = False
 
     @property
     def name(self) -> FileNameType:
@@ -169,11 +171,6 @@ class PELoader(Plugin):
                     current_path, item
                 )
 
-        for obj in files:
-            self._available_pes[obj.name] = obj.file
-
-        super().__init__(*files)
-
         self._loaded: Dict[FileNameType, MappedPE] = {}
         self._fake_exports: Dict[str, FakeExport] = {}
         self._iat_hooks: Dict[str, Callable[[HyperEmu, dict], Any]] = {}
@@ -181,6 +178,8 @@ class PELoader(Plugin):
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
+
+        super().__init__(*files)
 
     def __phantomize_dll(self, dll_name: FileNameType):
         phantom_dll = lief.PE.parse(self._available_pes[dll_name])
@@ -247,6 +246,9 @@ class PELoader(Plugin):
     def _handle(self, obj: PELoaderInfo):
         if obj.name in self._loaded.keys():
             return
+
+        if not obj.fake:
+            self._available_pes[obj.name] = obj.file
 
         if obj.name not in self._available_pes:
             log.error(f'Couldn\'t find {obj.file}')
