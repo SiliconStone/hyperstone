@@ -10,14 +10,19 @@ from hyperstone.exceptions import HSHookAlreadyRemovedError
 from hyperstone.util.logger import log
 
 
+ContextType = Dict[str, Any]
+HookFunc = Callable[[HyperEmu, ...], Any]
+HyperstoneCallback = Callable[[HyperEmu, ContextType], Any]
+
+
 @dataclass
 class HookInfo:
     name: str
     address: Optional[Union[int, Callable[[], int]]]
     return_address: Optional[Union[int, Callable[[], int]]] = None
-    callback: Optional[Callable[[HyperEmu, Dict[str, Any]], Any]] = None
+    callback: Optional[HyperstoneCallback] = None
     size: int = 1
-    ctx: Dict[str, Any] = field(default_factory=dict)
+    ctx: ContextType = field(default_factory=dict)
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
@@ -65,7 +70,7 @@ class Hook(Plugin):
         active = self.add_hook(hook, func, ms.HookType.CODE)
         hook.ctx[self.CTX_HOOK] = active
 
-    def add_hook(self, hook: HookInfo, func: Union[Callable[[HyperEmu], None], ms.HookFunc],
+    def add_hook(self, hook: HookInfo, func: Union[HookFunc, ms.HookFunc],
                  access_type: ms.HookType) -> ActiveHook:
         ms_hook = self.emu.add_hook(func, access_type, hook.address, hook.size)
         active = ActiveHook(hook, ms_hook)
@@ -91,7 +96,7 @@ class Hook(Plugin):
         else:
             hook_info.return_address = int(hook_info.return_address)
 
-        log_fn = log.debug if hook_info.name.startswith(Hook.SILENT) else log.info
+        log_fn = log.trace if hook_info.name.startswith(Hook.SILENT) else log.info
 
         log_fn(f'Hook - {hook_info.name} [PC = 0x{emu.pc:08X}, RET = 0x{emu.retaddr:08X}]')
         old_pc = emu.pc
