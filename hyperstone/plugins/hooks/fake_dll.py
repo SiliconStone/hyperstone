@@ -1,10 +1,9 @@
-from typing import Any, Dict
-from hyperstone.util.logger import log
-from hyperstone.emulator import HyperEmu
+from hyperstone.plugins.hooks.context import Context
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.hooks import FakeObject
 from hyperstone.plugins.loaders import PELoader, PELoaderInfo
 from hyperstone.plugins.loaders.pe import calculate_aslr
+from hyperstone.util.logger import log
 
 
 # noinspection PyPep8Naming
@@ -46,26 +45,26 @@ class FakeDll(FakeObject):
         else:
             return calculate_aslr(self.emu.arch.bits == 64, True)
 
-    def LoadLibrary(self, emu: HyperEmu, _: Dict[str, Any], name: str) -> None:
+    def LoadLibrary(self, ctx: Context, name: str) -> None:
         library_place = self._get_or_add_object(name)
-        emu.return_from_function(library_place)
+        ctx.emu.return_from_function(library_place)
 
-    def LoadLibraryA(self, emu: HyperEmu, ctx: Dict[str, Any]) -> None:
+    def LoadLibraryA(self, ctx: Context) -> None:
         # TODO make this code architecture generic
-        lib_name = emu.mem.read_cstring(emu.regs.rcx)
+        lib_name = ctx.emu.mem.read_cstring(ctx.emu.regs.rcx)
         log.debug(f'LoadLibraryA called for {lib_name}')
-        self.LoadLibrary(emu, ctx, lib_name)
+        self.LoadLibrary(ctx, lib_name)
 
-    def LoadLibraryW(self, emu: HyperEmu, ctx: Dict[str, Any]) -> None:
+    def LoadLibraryW(self, ctx: Context) -> None:
         pass
 
-    def GetProcAddress(self, emu: HyperEmu, _: Dict[str, Any]) -> None:
+    def GetProcAddress(self, ctx: Context) -> None:
         # TODO make this code architecture generic
-        func_name = emu.mem.read_cstring(emu.regs.rdx)
-        func_address = self._get_function_address(emu.regs.rcx, func_name)
+        func_name = ctx.emu.mem.read_cstring(ctx.emu.regs.rdx)
+        func_address = self._get_function_address(ctx.emu.regs.rcx, func_name)
         if func_address is None:
             func_address = 1
-        emu.return_from_function(func_address)
+        ctx.emu.return_from_function(func_address)
 
     def _fallback_get_function_address(self, object_name: str, function_name: str):
         if object_name in self._pe:

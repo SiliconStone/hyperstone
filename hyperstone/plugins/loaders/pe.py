@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, Dict, List, Callable, Any, Self, NewType, Union
+from typing import Optional, Dict, List, Self, NewType, Union
 
 import os
 import random
@@ -13,9 +13,9 @@ from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
 from hyperstone.plugins.memory.streams.write_file import FileStream
 from hyperstone.plugins.memory.streams.write_raw import RawStream
 
-from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook
+from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook, HyperstoneCallback
 from hyperstone.plugins.base import Plugin
-from hyperstone.emulator import HyperEmu
+from hyperstone.plugins.hooks.context import Context
 from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStateError
 from hyperstone.util.logger import log
 
@@ -173,7 +173,7 @@ class PELoader(Plugin):
 
         self._loaded: Dict[FileNameType, MappedPE] = {}
         self._fake_exports: Dict[str, FakeExport] = {}
-        self._iat_hooks: Dict[str, Callable[[HyperEmu, dict], Any]] = {}
+        self._iat_hooks: Dict[str, HyperstoneCallback] = {}
         self._segment_plugin: Optional[Segment] = None
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
@@ -211,7 +211,7 @@ class PELoader(Plugin):
     def __contains__(self, item: Union[FileNameType, str]) -> bool:
         return file_to_name(item) in self._loaded
 
-    def missing_iat(self, name: str, callback: Callable[[HyperEmu, Dict], Any]) -> Self:
+    def missing_iat(self, name: str, callback: HyperstoneCallback) -> Self:
         """
         Put a hook on a IAT entry that wasn't loaded
         Args:
@@ -500,7 +500,7 @@ class PELoader(Plugin):
             entry: lief.PE.ImportEntry
 
             my_base = mapped.base
-            if not entry.name in self._fake_exports[dependency.name].functions:
+            if entry.name not in self._fake_exports[dependency.name].functions:
                 self._fake_exports[dependency.name].functions[entry.name] = (
                     self._fake_exports[dependency.name].current_base
                 )
@@ -563,10 +563,10 @@ class PELoader(Plugin):
                 old_val = self.emu.mem.read_word(reloc_offset)
                 self.emu.mem.write_word(reloc_offset, old_val - parsed.imagebase + base)
 
-    def _phantom_hook_callback(self, emu: HyperEmu, ctx: Dict[str, Any]):
+    def _phantom_hook_callback(self, ctx: Context):
 
-        hook: ActiveHook = ctx[self._hook_plugin.CTX_HOOK]
-        hook_fn = hook.type.name.split(self._IAT_HOOK_SEP)[-1]
+        hook: ActiveHook = ctx.hook
+        hook_fn = hook.info.name.split(self._IAT_HOOK_SEP)[-1]
 
         if hook_fn in self._iat_hooks and self._iat_hooks[hook_fn] is not None:
-            self._iat_hooks[hook_fn](emu, ctx)
+            self._iat_hooks[hook_fn](ctx)

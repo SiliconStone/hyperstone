@@ -1,16 +1,16 @@
 from abc import abstractmethod
-from typing import Callable, Any, Iterator, Generator, Tuple, Dict
+from typing import Callable, Any, Iterator
 import inspect
 import types
 
 from hyperstone.calls.args.base import Argument
-from hyperstone.plugins.hooks.base import HyperstoneCallback, ContextType
-from hyperstone.emulator import HyperEmu
+from hyperstone.plugins.hooks.base import HyperstoneCallback
+from hyperstone.plugins.hooks.context import Context
 
-CB_EMU = 1
+
 CB_CTX = 1
 
-ExtendedCallback = Callable[[HyperEmu, ContextType], Any]
+ExtendedCallback = Callable[[Context], Any]
 
 
 class CallingConvention:
@@ -22,31 +22,24 @@ class CallingConvention:
         pass
 
     def __call__(self, function: Callable, *args, **kwargs) -> HyperstoneCallback:
-        amount = self._calculate_needed(function, *args, compensate=CB_EMU)
-        return self._generate_fn(function, amount, *args, **kwargs, pass_emu=True, pass_ctx=False)
+        amount = self._calculate_needed(function, *args, compensate=CB_CTX)
+        return self._generate_fn(function, amount, *args, **kwargs)
 
-    def ctx(self, function: Callable, *args, **kwargs) -> HyperstoneCallback:
-        amount = self._calculate_needed(function, *args, compensate=(CB_EMU + CB_CTX))
-        return self._generate_fn(function, amount, *args, **kwargs, pass_emu=True, pass_ctx=True)
-
-    def _generate_fn(self, function: Callable, arg_amount: int, *args, pass_emu: bool, pass_ctx: bool, **kwargs):
-        def call_wrapper(mu: HyperEmu, ctx: ContextType):
+    def _generate_fn(self, function: Callable, arg_amount: int, *args, **kwargs):
+        def call_wrapper(ctx: Context):
             amount = arg_amount
-            params = []
-
-            if pass_emu:
-                params.append(mu)
-            if pass_ctx:
-                params.append(ctx)
+            params = [ctx]
 
             for arg in iter(self):
                 if amount <= 0:
                     break
 
-                params.append(arg.get(mu))
+                params.append(arg.get(ctx.emu))
                 amount -= 1
-
-            return function(*params, *args, **kwargs)
+            print(f'calling {function}')
+            retval = function(*params, *args, **kwargs)
+            print(f'returned {retval}')
+            return retval
 
         return call_wrapper
 

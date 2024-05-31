@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Optional, Union, Callable
+from typing import Optional
 
-from hyperstone.plugins.hooks.base import Hook, HookInfo
+from hyperstone.plugins.hooks.context import Context
 from hyperstone.plugins.base import Plugin
-from hyperstone.emulator import HyperEmu
+from hyperstone.plugins.hooks.base import Hook, HookInfo
 from hyperstone.util.logger import log
 
 
@@ -31,9 +31,9 @@ class FunctionNullsub(Plugin):
         hook_plugin.interact(HookInfo(f'Nullsub @ {obj.address:08X}', obj.address, None, partial(self._callback, obj)))
 
     @staticmethod
-    def _callback(stub: FunctionNullsubInfo, emu: HyperEmu, _):
+    def _callback(stub: FunctionNullsubInfo, ctx: Context):
         log.debug(f'Returning from {stub}')
         retval = stub.return_value
         if retval is not None:
             retval = int(retval)
-        emu.return_from_function(retval)
+        ctx.emu.return_from_function(retval)

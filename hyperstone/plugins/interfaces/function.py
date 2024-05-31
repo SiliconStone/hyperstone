@@ -52,7 +52,8 @@ class ExportedCaller:
         runner = Plugin.require(self._runner, emu)
 
         if len(args) > len(self._function.arguments):
-            log.error(f'Passing too many arguments, ignoring last {len(args) - len(self._function.arguments)} arguments')
+            log.error(f'Passing too many arguments, ignoring last '
+                      f'{len(args) - len(self._function.arguments)} arguments')
             args = args[:len(self._function.arguments)]
 
         for i, arg in enumerate(args):

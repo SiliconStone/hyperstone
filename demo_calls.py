@@ -1,17 +1,18 @@
 from hyperstone.plugins.memory.mappers import StreamMapperInfo, SegmentInfo
 from hyperstone.plugins.memory.streams import CodeStream
-from hyperstone.plugins.hooks import HookInfo, FunctionNullsubInfo, ContextType
+from hyperstone.plugins.hooks import HookInfo, FunctionNullsubInfo
 from hyperstone import megastone as ms
 
 import hyperstone as hs
 
 
-def debug_malloc1(emu: hs.HyperEmu, size: int):
+def debug_malloc1(ctx: hs.Context, size: int):
+    print('aaaa')
     hs.log.info(f'malloc1 {size:#x}')
-    hs.hooks.set_retval(emu, emu.mem.allocate(size).address)
+    hs.hooks.set_retval(ctx.emu, ctx.emu.mem.allocate(size).address)
 
 
-def debug_malloc2(emu: hs.HyperEmu, size: int, name_int: int = 0):
+def debug_malloc2(ctx: hs.Context, size: int, name_int: int = 0):
     names_list = [
         '[malloc2 heap]',
         '[malloc2 heap - Alt]',
@@ -22,10 +23,10 @@ def debug_malloc2(emu: hs.HyperEmu, size: int, name_int: int = 0):
     else:
         name = names_list[name_int]
     hs.log.info(f'malloc2 {size:#x} {name}')
-    hs.hooks.set_retval(emu, emu.mem.allocate(size, name).address)
+    hs.hooks.set_retval(ctx.emu, ctx.emu.mem.allocate(size, name).address)
 
 
-def debug_malloc3(emu: hs.HyperEmu, ctx: ContextType, size: int, checksum: int):
+def debug_malloc3(ctx: hs.DictContext, size: int, checksum: int):
     if checksum != 1337:
         hs.log.error('malloc3 checksum mismatch')
         return
@@ -33,7 +34,7 @@ def debug_malloc3(emu: hs.HyperEmu, ctx: ContextType, size: int, checksum: int):
     name = ctx['name']
     hs.log.info(f'malloc3 {size:#x} {name}')
     hs.log.debug(f'malloc3 context - {ctx}')
-    hs.hooks.set_retval(emu, emu.mem.allocate(size, name).address)
+    hs.hooks.set_retval(ctx.emu, ctx.emu.mem.allocate(size, name).address)
 
 
 class Settings(hs.Settings):
@@ -172,8 +173,8 @@ class Settings(hs.Settings):
         HookInfo(
             'MALLOC3__R0__CTX',
             MALLOC3__R0__CTX,
-            callback=ARM_CONV.ctx(debug_malloc3, 1337),  # Checksum arg
-            ctx={'name': '[Heap with context!]'}
+            callback=ARM_CONV(debug_malloc3, 1337),  # Checksum arg
+            ctx=hs.DictContext(name='[Heap with context!]')
         )
     )
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import megastone as ms
 
 from hyperstone.calls.args.base import Argument
 from hyperstone.emulator import HyperEmu

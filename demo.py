@@ -62,7 +62,7 @@ SIMPLE_SETTINGS = [
             name='Skip bad',
             address=(SEGMENTS @ 'test').address + 5 * OPCODE_SIZE,
             return_address=(SEGMENTS @ 'test').address + 7 * OPCODE_SIZE,
-            callback=lambda mu, _: (hs.hooks.ret(mu, mu.regs.r0 + 1), hs.hooks.debug_instructions_hook(mu))
+            callback=lambda ctx: (hs.hooks.ret(ctx.emu, ctx.emu.regs.r0 + 1), hs.hooks.debug_instructions_hook(ctx.emu))
         ),
     ),
 

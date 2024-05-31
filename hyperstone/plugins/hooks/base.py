@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional, Callable, Any, Dict, Tuple, Union, List
+from typing import Optional, Callable, Any, Tuple, Union, List
 
 import megastone as ms
 
@@ -8,11 +8,11 @@ from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookAlreadyRemovedError
 from hyperstone.util.logger import log
+from hyperstone.plugins.hooks.context import Context, DictContext
 
 
-ContextType = Dict[str, Any]
 HookFunc = Callable[[HyperEmu, ...], Any]
-HyperstoneCallback = Callable[[HyperEmu, ContextType], Any]
+HyperstoneCallback = Callable[[Context], Any]
 
 
 @dataclass
@@ -22,7 +22,7 @@ class HookInfo:
     return_address: Optional[Union[int, Callable[[], int]]] = None
     callback: Optional[HyperstoneCallback] = None
     size: int = 1
-    ctx: ContextType = field(default_factory=dict)
+    ctx: Context = field(default_factory=DictContext)
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
@@ -38,13 +38,12 @@ class HookInfo:
 
 @dataclass
 class ActiveHook:
-    type: HookInfo
+    info: HookInfo
     obj: Optional[ms.Hook]
 
 
 class Hook(Plugin):
     SILENT = '!'
-    CTX_HOOK = '__hook__'
 
     def __init__(self, *hooks: HookInfo):
         super().__init__()
@@ -53,12 +52,12 @@ class Hook(Plugin):
 
     def __getitem__(self, item: str) -> ActiveHook:
         for hook in self._hooks:
-            if hook.type.name == item:
+            if hook.info.name == item:
                 return hook
 
     def get(self, hook_info: HookInfo) -> ActiveHook:
         for hook in self._hooks:
-            if hook.type == hook_info:
+            if hook.info == hook_info:
                 return hook
 
     @property
@@ -66,9 +65,8 @@ class Hook(Plugin):
         return tuple(self._hooks)
 
     def _handle(self, hook: HookInfo):
-        func = partial(Hook._hook, hook)
-        active = self.add_hook(hook, func, ms.HookType.CODE)
-        hook.ctx[self.CTX_HOOK] = active
+        func = partial(Hook._hook, hook.ctx)
+        hook.ctx.hook = self.add_hook(hook, func, ms.HookType.CODE)
 
     def add_hook(self, hook: HookInfo, func: Union[HookFunc, ms.HookFunc],
                  access_type: ms.HookType) -> ActiveHook:
@@ -80,14 +78,17 @@ class Hook(Plugin):
 
     def remove_hook(self, hook: ActiveHook):
         if not hook.obj:
-            raise HSHookAlreadyRemovedError(f'Hook {hook.type.name} already removed')
+            raise HSHookAlreadyRemovedError(f'Hook {hook.info.name} already removed')
 
         self._hooks.remove(hook)
         self.emu.remove_hook(hook.obj)
         hook.obj = None
 
     @staticmethod
-    def _hook(hook_info: HookInfo, emu: HyperEmu):
+    def _hook(hook_ctx: Context, emu: HyperEmu):
+        hook_info = hook_ctx.hook.info
+        hook_ctx.emu = emu
+
         if hook_info.return_address is None:
             was_called = hook_info.double_call
             hook_info.double_call = False
@@ -102,7 +103,10 @@ class Hook(Plugin):
         old_pc = emu.pc
         func = hook_info.callback
         if func:
-            func(emu, hook_info.ctx)
+            try:
+                func(hook_ctx)
+            except Exception as e:
+                log.error(f'Error calling {func}: {e}')
 
         if hook_info.return_address is not None:
             emu.pc = hook_info.return_address

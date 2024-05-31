@@ -1,7 +1,6 @@
-from hyperstone.plugins.loaders import PELoaderInfo
-from hyperstone.plugins.hooks import HookInfo
-from hyperstone import megastone as ms
 import hyperstone as hs
+from hyperstone import megastone as ms
+from hyperstone.plugins.loaders import PELoaderInfo
 
 
 class Settings(hs.Settings):
