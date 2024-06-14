@@ -7,6 +7,7 @@ import random
 import lief.PE
 import megastone as ms
 
+from hyperstone.plugins.loaders.names import PE_SEGMENT_NAME
 from hyperstone.plugins.memory.mappers.map_stream import StreamMapper, StreamMapperInfo
 from hyperstone.plugins.memory.access_enforce import EnforceMemory, EnforceMemoryInfo
 from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
@@ -400,7 +401,7 @@ class PELoader(Plugin):
             permission = ms.AccessType.RWX
 
         pefile = mapped.info
-        segment_name = f'PE.SECTION."{pefile.file}"."{section.name}"'
+        segment_name = PE_SEGMENT_NAME.format(file_name=pefile.name, segment_name=section.name)
         log.debug(f'Mapping section {section.name} of {pefile}')
         self._stream_mapper.interact(
             StreamMapperInfo(
