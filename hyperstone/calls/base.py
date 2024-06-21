@@ -6,6 +6,7 @@ import types
 from hyperstone.calls.args.base import Argument
 from hyperstone.plugins.hooks.base import HyperstoneCallback
 from hyperstone.plugins.hooks.context import Context
+from hyperstone.util.logger import log
 
 
 CB_CTX = 1
@@ -36,9 +37,9 @@ class CallingConvention:
 
                 params.append(arg.get(ctx.emu))
                 amount -= 1
-            print(f'calling {function}')
+            log.trace(f'calling {function}')
             retval = function(*params, *args, **kwargs)
-            print(f'returned {retval}')
+            log.trace(f'returned {retval}')
             return retval
 
         return call_wrapper
