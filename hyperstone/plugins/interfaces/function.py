@@ -3,6 +3,7 @@ from typing import Tuple, Optional, Dict, Any, Type
 
 from hyperstone.plugins.base import Plugin, RunnerPlugin
 from hyperstone.plugins.runners import FunctionEntrypoint
+from hyperstone.calls.base import CallingConvention
 from hyperstone.exceptions import HyperstonePluginError, HSPluginInteractNotReadyError
 from hyperstone.util.logger import log
 
@@ -11,7 +12,7 @@ from hyperstone.util.logger import log
 class ExportFunctionInfo:
     name: str
     address: int
-    arguments: Tuple[str, ...]
+    convention: CallingConvention
 
 
 class ExportFunction(Plugin):
@@ -36,13 +37,13 @@ class ExportFunction(Plugin):
 
 class ExportedCaller:
     def __init__(self, parent: ExportFunction, function: ExportFunctionInfo,
-                 runner: Type[RunnerPlugin], args: Optional[Dict[str, Any]] = None):
+                 runner: Type[RunnerPlugin], runner_args: Optional[Dict[str, Any]] = None):
         self._parent = parent
         self._function = function
         self._runner = runner
-        if args is None:
-            args = {}
-        self._args = args
+        if runner_args is None:
+            runner_args = {}
+        self._args = runner_args
 
     def __call__(self, *args):
         if not self._parent.ready:
@@ -51,13 +52,10 @@ class ExportedCaller:
         emu = self._parent.emu
         runner = Plugin.require(self._runner, emu)
 
-        if len(args) > len(self._function.arguments):
-            log.error(f'Passing too many arguments, ignoring last '
-                      f'{len(args) - len(self._function.arguments)} arguments')
-            args = args[:len(self._function.arguments)]
-
-        for i, arg in enumerate(args):
-            emu.regs[self._function.arguments[i]] = arg
+        for i, param in enumerate(self._function.convention):
+            if len(args) == i:
+                break
+            param.set(emu, args[i])
 
         runner.entrypoint = self._function.address
 

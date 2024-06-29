@@ -3,6 +3,7 @@ import megastone as ms
 
 from hyperstone.calls.args.base import Argument
 from hyperstone.emulator import HyperEmu
+from hyperstone.util.logger import log
 
 
 @dataclass(frozen=True)

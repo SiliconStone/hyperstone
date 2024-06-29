@@ -8,7 +8,7 @@ from hyperstone.util.logger import log
 
 def debug_instructions_hook(emu: HyperEmu):
     log.info('Adding debug instructions hook')
-    emu.add_code_hook(lambda e: log.debug(f'{e.get_curr_insn()} - {hex(e.pc)}'))
+    emu.add_code_hook(lambda e: log.debug(f'{e.pc:0{emu.arch.word_size * 2}X}: {e.get_curr_insn()}'))
 
 
 def print_registers(emu: HyperEmu, amount: int = 4):
