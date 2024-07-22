@@ -29,6 +29,12 @@ class CallTraceCache:
 
 
 class CallTraceContext(Context):
+    """
+    The context implementation required for the `CallTrace` plugin
+    Used internally by the `_CallTraceHook` hook
+
+    This class is highly optimised to resolve call opcodes.
+    """
     def __init__(self, sensitivity: int):
         super().__init__()
         self.last_pc: Optional[int] = None
