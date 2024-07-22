@@ -18,8 +18,10 @@ SETTINGS = [
     hs.plugins.memory.InitializeSupportStack(),
 
     hs.plugins.memory.EnforceMemory(),
+    hs.plugins.hooks.CallTrace(),
 
     hs.plugins.runners.FunctionEntrypoint(MAIN_BASE.entrypoint)
+    # hs.plugins.runners.GDBServer()  # Try me!
 ]
 
 

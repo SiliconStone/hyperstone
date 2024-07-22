@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional, Callable, Any, Tuple, Union, List
+from typing import Optional, Callable, Any, Tuple, Union, List, TypeVar
 
 import megastone as ms
 
@@ -11,8 +11,9 @@ from hyperstone.util.logger import log
 from hyperstone.plugins.hooks.context import Context, DictContext
 
 
-HookFunc = Callable[[HyperEmu, ...], Any]
+HookFunc = Callable[[HyperEmu], Any]
 HyperstoneCallback = Callable[[Context], Any]
+KC = TypeVar('KC', bound=Context)  # Support for old python
 
 
 @dataclass
@@ -22,7 +23,7 @@ class HookInfo:
     return_address: Optional[Union[int, Callable[[], int]]] = None
     callback: Optional[HyperstoneCallback] = None
     size: int = 1
-    ctx: Context = field(default_factory=DictContext)
+    ctx: KC = field(default_factory=DictContext)
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)

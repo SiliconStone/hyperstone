@@ -53,6 +53,8 @@ class Settings(hs.Settings):
     FUNCTIONS_NULLSUB = [MALLOC1__R0, MALLOC2__R0, MALLOC1__R1, MALLOC2__R1, MALLOC2__R0__NAME_R1,
                          MALLOC2__R0__NAME_USER, MALLOC3__R0__CTX]
 
+    _DBG = hs.plugins.hooks.CallTrace()
+
     MAIN_CODE = hs.plugins.memory.StreamMapper(
         StreamMapperInfo(
             CodeStream(

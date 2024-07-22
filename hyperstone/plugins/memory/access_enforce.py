@@ -43,11 +43,11 @@ class EnforceMemory(Plugin):
         log.debug(f'Adding ACL - {obj}')
         self._base.append(obj)
 
-    def _callback_access(self, ctx: Context):
-        self._access_check(ctx.emu, ctx.emu.curr_access.address, ctx.emu.curr_access.type)
+    def _callback_access(self, emu: HyperEmu):
+        self._access_check(emu, emu.curr_access.address, emu.curr_access.type)
 
-    def _callback_execute(self, ctx: Context):
-        self._access_check(ctx.emu, ctx.emu.pc, ms.AccessType.X)
+    def _callback_execute(self, emu: HyperEmu):
+        self._access_check(emu, emu.pc, ms.AccessType.X)
 
     def _access_check(self, emu: HyperEmu, address: int, access_type: ms.AccessType):
         for entry in self._ranges:

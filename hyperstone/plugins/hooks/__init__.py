@@ -1,4 +1,5 @@
 from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook, HyperstoneCallback
+from hyperstone.plugins.hooks.call_trace import CallTrace
 from hyperstone.plugins.hooks.context import Context, DictContext
 from hyperstone.plugins.hooks.nullsub import FunctionNullsub, FunctionNullsubInfo
 from hyperstone.plugins.hooks.virtual_registry import VirtualRegistry, VirtualRegistryInfo, RegistryAction
@@ -15,6 +16,8 @@ __all__ = [
     'DictContext',
 
     'HyperstoneCallback',
+
+    'CallTrace',
 
     'FunctionNullsub',
     'FunctionNullsubInfo',

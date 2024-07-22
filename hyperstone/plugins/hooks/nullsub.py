@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Optional
 
+from hyperstone.plugins.hooks.call_trace import CallTrace
 from hyperstone.plugins.hooks.context import Context
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.hooks.base import Hook, HookInfo
@@ -26,13 +27,25 @@ class FunctionNullsub(Plugin):
     """
     _INTERACT_TYPE = FunctionNullsubInfo
 
+    def __init__(self, *args: FunctionNullsubInfo):
+        self._call_trace_plugin: Optional[CallTrace] = None
+        super().__init__(*args)
+
+    def _prepare(self):
+        for trace in Plugin.get_all_loaded(CallTrace, self.emu):
+            self._call_trace_plugin = trace
+
     def _handle(self, obj: FunctionNullsubInfo):
         hook_plugin = Plugin.require(Hook, self.emu)
-        hook_plugin.interact(HookInfo(f'Nullsub @ {obj.address:08X}', obj.address, None, partial(self._callback, obj)))
+        hook_plugin.interact(HookInfo(f'Nullsub @ {obj.address:08X}', obj.address, None, partial(self._callback, obj, self._call_trace_plugin)))
 
     @staticmethod
-    def _callback(stub: FunctionNullsubInfo, ctx: Context):
+    def _callback(stub: FunctionNullsubInfo, trace_plugin: Optional[CallTrace], ctx: Context):
         log.debug(f'Returning from {stub}')
+
+        if trace_plugin is not None:
+            trace_plugin.pop()
+
         retval = stub.return_value
         if retval is not None:
             retval = int(retval)
