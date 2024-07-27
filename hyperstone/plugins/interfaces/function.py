@@ -10,12 +10,26 @@ from hyperstone.util.logger import log
 
 @dataclass(frozen=True)
 class ExportFunctionInfo:
+    """
+    Defines a function to be exported
+
+    Attributes:
+        name: The name of the function to be exported.
+        address: The address of the function, on execute the emulator will jump to that address.
+        convention: The calling convention of the function.
+    """
     name: str
     address: int
     convention: CallingConvention
 
 
 class ExportFunction(Plugin):
+    """
+    This plugin allows to "wrap" functions inside the emulated program as python-like functions.
+    This allows the user to call a specific function many times from a python script with different arguments.
+    This might be useful in cases that a user wants to run a specific function from a program over a chunk of data
+    instead of emulating the entire program.
+    """
     def __init__(self, *objs: ExportFunctionInfo):
         super().__init__(*objs)
         self.functions: Dict[str, ExportFunctionInfo] = {}
@@ -28,7 +42,21 @@ class ExportFunction(Plugin):
     def _handle(self, obj: ExportFunctionInfo):
         self.functions[obj.name] = obj
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> 'ExportedCaller':
+        """
+        Get a function by name, see `ExportFunctionInfo`
+
+        Args:
+            name: The name of the function to get.
+
+        Returns:
+            An `ExportedCaller` instance that provides a `__call__` method for the given function.
+            You may call a function by:
+            plugin['FunctionName'](arg1, arg2, arg3, ...)
+
+        Raises:
+            HyperstonePluginError: If the function is not found.
+        """
         if name not in self.functions:
             raise HyperstonePluginError(f'Function "{name}" doesn\'t exist')
 
@@ -36,6 +64,9 @@ class ExportFunction(Plugin):
 
 
 class ExportedCaller:
+    """
+    This object acts as a fake runner plugin which prepares the emulator for a single function run when `__call__`'d
+    """
     def __init__(self, parent: ExportFunction, function: ExportFunctionInfo,
                  runner: Type[RunnerPlugin], runner_args: Optional[Dict[str, Any]] = None):
         self._parent = parent

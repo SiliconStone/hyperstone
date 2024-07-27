@@ -54,15 +54,38 @@ class PELoaderInfo:
 
 @dataclass(frozen=True)
 class MappedPE:
+    """
+    Represents a mapped PE file that is loaded into the memory.
+
+    Attributes:
+        info: The `PELoaderInfo` that was used for creating this object.
+        base: The chosen base address for the PE file.
+        pe: The `lief` PE file
+    """
     info: PELoaderInfo
     base: int
     pe: lief.PE.Binary
 
     @property
-    def entrypoint(self):
+    def entrypoint(self) -> int:
+        """
+        Get the entrypoint of the PE file.
+
+        Returns:
+            The entrypoint address of the mapped and loaded PE file.
+        """
         return self.base + self.pe.optional_header.addressof_entrypoint
 
     def function(self, name: str) -> int:
+        """
+        Get a function's address by name.
+
+        Args:
+            name: The name of the function.
+
+        Returns:
+            The address of the function in the emulator's memory.
+        """
         for func in chain(self.pe.exported_functions, self.pe.functions):
             if func.name == name:
                 return self.base + func.address
@@ -105,6 +128,7 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
         X - Cannot randomise
         0 - Usually 0
         1 - Usually 1 (For DLLs)
+        ? - Not so sure - 0 in hyperstone
 
         Random for 32 bit:
         PDP - PDE - PTE - Offset
@@ -114,7 +138,7 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
         Random for 64 bit:
         Sign Extend - PML4 - PDP - PDE - PTE - Offset
         0000 0000 0000 0000 - 0000 0000 0-000 0000
-        KKKK KKKK KKKK KKKK - K111 1111 1-111 1DDE
+        KKKK KKKK KKKK KKKK - K111 1111 1-111 ?DDE
 
         00-00 0000 000-0 0000 0000 - 0000 0000 0000
         EE-EE EEEE EEE-E EEEE 0000 - XXXX XXXX XXXX

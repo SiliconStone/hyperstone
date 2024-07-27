@@ -29,6 +29,16 @@ EXPORT_FUNCTION_RESOLVER: Dict[int, Object] = {}
 
 
 class FakeObject(Plugin):
+    """
+    This plugin allows to implement full libraries in a python object-like syntax.
+    This plugin should integrate with hyperstone loaders and implement full hooks over imported objects.
+    Objects are exported in a windbg-like syntax: `ObjectName!FunctionName`
+
+    See Also FakeDll
+
+    Notes:
+        This is a generic plugin and should not be loaded directly.
+    """
     def _handle(self, obj):
         pass
 

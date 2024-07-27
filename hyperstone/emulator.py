@@ -1,3 +1,4 @@
+from hyperstone.plugins.hooks.context import DictContext
 from typing import TYPE_CHECKING
 
 import megastone as ms
@@ -7,10 +8,17 @@ if TYPE_CHECKING:
 
 
 class HyperEmu(ms.Emulator):
+    """
+    The hyperstone emulator instance
+
+    Attributes:
+        settings: The settings that were used to configure the emulator.
+        context: A global context object to be used freely by the user.
+    """
     def __init__(self, arch: ms.Architecture, settings: 'SettingsType'):
         super().__init__(arch)
         self.settings = settings
-        self.context = dict()
+        self.context = DictContext()
 
     def copy(self):
         """Create a copy of this Emulator, including memory and register state."""

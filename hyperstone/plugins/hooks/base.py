@@ -12,8 +12,8 @@ from hyperstone.plugins.hooks.context import Context, DictContext
 
 
 HookFunc = Callable[[HyperEmu], Any]
-HyperstoneCallback = Callable[[Context], Any]
 KC = TypeVar('KC', bound=Context)  # Support for old python
+HyperstoneCallback = Callable[[KC], Any]
 
 
 @dataclass
@@ -41,6 +41,8 @@ class HookInfo:
             A Context object that will be passed to the callback.
             By default, The context object is a DictContext instance, acting as a `dict`
             A user may inherit the Context base class to implement more advanced Context "requirements" for hooks.
+        silent:
+            Should this hook be a silent hook?
     """
     name: str
     address: Optional[Union[int, Callable[[], int]]]
@@ -48,6 +50,7 @@ class HookInfo:
     callback: Optional[HyperstoneCallback] = None
     size: int = 1
     ctx: KC = field(default_factory=DictContext)
+    silent: bool = False
     double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
@@ -156,10 +159,9 @@ class Hook(Plugin):
         Args:
             hook: The hook to register
         """
-        func = partial(Hook._hook, hook.ctx)
-        hook.ctx.hook = self.add_hook(hook, func, ms.HookType.CODE)
+        hook.ctx.hook = self.add_hook(hook, ms.HookType.CODE)
 
-    def add_hook(self, hook: HookInfo, func: Union[HookFunc, ms.HookFunc],
+    def add_hook(self, hook: HookInfo,
                  access_type: ms.HookType) -> ActiveHook:
         """
         An extended API for the hook plugin to register a hook.
@@ -170,15 +172,15 @@ class Hook(Plugin):
         Args:
             hook:
                 The HookInfo to register
-            func:
-                A callback function, by default, this function gets a megastone `Debugger` object,
-                but when called with a hyperstone emulator, this function will get a `HyperEmu` object.
             access_type:
                 Access type that'd trigger this hook.
         Returns:
 
         """
-        ms_hook = self.emu.add_hook(func, access_type, hook.address, hook.size)
+        if hook.name.startswith(Hook.SILENT):
+            hook.silent = True
+
+        ms_hook = self.emu.add_hook(partial(Hook._hook, hook.ctx), access_type, hook.address, hook.size)
         active = ActiveHook(hook, ms_hook)
         self._hooks.append(active)
         log.info(f'Added hook {hook.name}')
@@ -193,7 +195,7 @@ class Hook(Plugin):
 
         Notes:
             This function will set `hook.obj` to `None` on success.
-            This invalidates the `ActiveHook` object and it shouldn't be used afterward for any interaction with
+            This invalidates the `ActiveHook` object, and it shouldn't be used afterward for any interaction with
             the `Hook` plugin.
         """
         if not hook.obj:
@@ -225,7 +227,7 @@ class Hook(Plugin):
         else:
             hook_info.return_address = int(hook_info.return_address)
 
-        log_fn = log.trace if hook_info.name.startswith(Hook.SILENT) else log.info
+        log_fn = log.trace if hook_info.silent else log.debug
 
         log_fn(f'Hook - {hook_info.name} [PC = 0x{emu.pc:08X}, RET = 0x{emu.retaddr:08X}]')
         old_pc = emu.pc

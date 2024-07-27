@@ -9,6 +9,14 @@ from hyperstone.util.logger import log
 # noinspection PyPep8Naming
 # Windows function names
 class FakeDll(FakeObject):
+    """
+    This plugin is the base `FakeObject` implementation for Windows-like object (See `PELoader`)
+    It implements some basic `Kernel32` functions:
+        KERNEL32.DLL!LoadLibraryA
+        KERNEL32.DLL!LoadLibraryW
+        KERNEL32.DLL!GetProcAddress
+    These functions are implemented to fetch other fake or real DLLs.
+    """
     def __init__(self, *args: str):
         super().__init__(
             "KERNEL32.DLL!LoadLibraryA",
