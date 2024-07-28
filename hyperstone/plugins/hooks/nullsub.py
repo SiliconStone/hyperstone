@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from functools import partial
 from typing import Optional
 
 from hyperstone.plugins.hooks.call_trace import CallTrace
-from hyperstone.plugins.hooks.context import Context
+from hyperstone.util.context import Context
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.hooks.base import Hook, HookInfo
 from hyperstone.util.logger import log
@@ -18,6 +17,13 @@ class FunctionNullsubInfo:
     """
     address: int
     return_value: Optional[int] = None
+
+
+class FunctionNullsubContext(Context):
+    def __init__(self, stub: FunctionNullsubInfo, trace_plugin: Optional[CallTrace]):
+        super().__init__()
+        self.stub = stub
+        self.trace_plugin = trace_plugin
 
 
 class FunctionNullsub(Plugin):
@@ -37,16 +43,17 @@ class FunctionNullsub(Plugin):
 
     def _handle(self, obj: FunctionNullsubInfo):
         hook_plugin = Plugin.require(Hook, self.emu)
-        hook_plugin.interact(HookInfo(f'Nullsub @ {obj.address:08X}', obj.address, None, partial(self._callback, obj, self._call_trace_plugin)))
+        hook_plugin.interact(HookInfo(f'Nullsub @ {obj.address:08X}', obj.address, None, self._callback,
+                                      ctx=FunctionNullsubContext(obj, self._call_trace_plugin), silent=True))
 
     @staticmethod
-    def _callback(stub: FunctionNullsubInfo, trace_plugin: Optional[CallTrace], ctx: Context):
-        log.debug(f'Returning from {stub}')
+    def _callback(ctx: FunctionNullsubContext):
+        log.debug(f'Returning from {ctx.stub}')
 
-        if trace_plugin is not None:
-            trace_plugin.pop()
+        if ctx.trace_plugin is not None:
+            ctx.trace_plugin.pop()
 
-        retval = stub.return_value
+        retval = ctx.stub.return_value
         if retval is not None:
             retval = int(retval)
         ctx.emu.return_from_function(retval)

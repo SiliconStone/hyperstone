@@ -15,7 +15,7 @@ class CodeStream(Stream):
 
     Attributes:
         assembly: Raw assembly to assemble
-        base: The base address of the assembly + map address.
+        base: The base address of the assembly + map address. Usually used as a hint for mapping inside / as segments.
         isa: The ISA of the assembly, If None then attempt to let megastone use the default one for the emulator
     """
     assembly: str

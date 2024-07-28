@@ -1,4 +1,4 @@
-from hyperstone.plugins.hooks.context import Context
+from hyperstone.util.context import Context
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.hooks import FakeObject
 from hyperstone.plugins.loaders import PELoader, PELoaderInfo

@@ -5,7 +5,7 @@ import types
 
 from hyperstone.calls.args.base import Argument
 from hyperstone.plugins.hooks.base import HyperstoneCallback
-from hyperstone.plugins.hooks.context import Context
+from hyperstone.util.context import Context
 from hyperstone.util.logger import log
 
 

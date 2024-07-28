@@ -13,6 +13,17 @@ from hyperstone.util.logger import log
 
 @dataclass
 class StreamMapperInfo:
+    """
+    Represents a tuple of data and a segment.
+    This object allows to map a segment and set its data at the same time.
+
+    Attributes:
+        stream:
+            A data stream. Represents some data in some format.
+        segment:
+            The segment to be mapped, its size may be `None`, and if so, it'd be resolved to be the size of the
+            stream
+    """
     stream: Stream
     segment: SegmentInfo
 

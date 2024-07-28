@@ -17,6 +17,13 @@ CLELoaderInfo = cle.Loader
 
 
 class CLELoader(Plugin):
+    """
+    This plugin implements an image loader via the CLE library, which serves as a generic image loader.
+
+    Notes:
+        This loader (CLE) wasn't created by hand for hyperstone and as such has messy support.
+        If available, you should use a designated loader (for example, PELoader).
+    """
     _INTERACT_TYPE = CLELoaderInfo
     CLE_SECTION_TEMPLATE = 'CLE.SECTION."{binary}"."{section}"'
     CLE_SEGMENT_TEMPLATE = 'CLE.SEGMENT."{binary}"."#{segment}"'

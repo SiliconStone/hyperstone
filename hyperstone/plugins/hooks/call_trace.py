@@ -6,8 +6,7 @@ import megastone as ms
 
 from hyperstone.plugins.base import Plugin
 from hyperstone.plugins.hooks.base import Hook, ActiveHook, HookInfo
-from hyperstone.plugins.hooks.context import Context
-from hyperstone.emulator import HyperEmu
+from hyperstone.util.context import Context
 from hyperstone.exceptions import HSPluginBadStateError
 from hyperstone.util.logger import log
 
@@ -160,6 +159,7 @@ class CallTrace(Plugin):
                 address=None,
                 callback=self._callback,
                 ctx=ctx,
+                silent=True
             ),
             ms.HookType.CODE
         )
@@ -174,7 +174,7 @@ class CallTrace(Plugin):
         if self._hook is None:
             raise HSPluginBadStateError('Cannot pop without installing hook first')
 
-        self._handle_call_type(CallTraceEnum.Return)
+        self._handle_call_type(self._hook.info.ctx, CallTraceEnum.Return)
 
     def _callback(self, ctx: CallTraceContext):
         call_type = ctx.next()

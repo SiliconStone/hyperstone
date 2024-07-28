@@ -11,6 +11,18 @@ from hyperstone.util.logger import log
 
 @dataclass
 class SegmentInfo:
+    """
+    Defines a segment to be mapped.
+
+    Attributes:
+        name:
+            The name of the segment to be mapped.
+        address:
+            The base address of the segment.
+        size:
+            The size in bytes of the segment. Note that if size is `None`, then some plugins might try to resolve
+            the size of the segment. Note that the `Segment` plugin will error if given a `None` sized segment.
+    """
     name: str
     address: int
     size: Optional[int] = None
@@ -47,6 +59,18 @@ class Segment(Plugin):
         self._mapped_info.append(seg)
 
     def mapped(self, name: str) -> ms.Segment:
+        """
+        Resolve a mapped segment by name.
+
+        Args:
+            name: The name of the mapped segment to resolve.
+
+        Returns:
+            The mapped segment, as a `ms.Segment` object.
+
+        Raises:
+            KeyError: if there is no mapped (`megastone`) segment with that name.
+        """
         for seg in self._segments:
             if seg.name == name:
                 return seg

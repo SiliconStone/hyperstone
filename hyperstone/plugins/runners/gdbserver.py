@@ -6,6 +6,10 @@ from hyperstone.util.logger import log
 
 
 class GDBServer(RunnerPlugin):
+    """
+    Implements a GDBServer runner plugin.
+    When "running", will start a GDB server.
+    """
     def _handle(self, obj: Any):
         pass
 

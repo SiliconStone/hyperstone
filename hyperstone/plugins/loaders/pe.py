@@ -15,7 +15,7 @@ from hyperstone.plugins.memory.streams.write_raw import RawStream
 
 from hyperstone.plugins.hooks.base import Hook, HookInfo, ActiveHook, HyperstoneCallback
 from hyperstone.plugins.base import Plugin
-from hyperstone.plugins.hooks.context import Context
+from hyperstone.util.context import Context
 from hyperstone.exceptions import HSPluginInteractNotReadyError, HSPluginBadStateError
 from hyperstone.util.logger import log
 
@@ -158,6 +158,20 @@ def calculate_aslr(high_entropy: bool, is_dll: bool) -> int:
 
 
 def section_perms_to_ms(section: lief.PE.Section) -> ms.AccessType:
+    """
+    This function converts a `lief` section's permission to a `megastone` `AccessType` value
+
+    Args:
+        section: The `lief` section to get permissions for.
+
+    Returns:
+        The permission of the given section in a `megastone` friendly format.
+
+    Notes:
+        This function would `log.info` if a section was given with a `Write` and `Execute` permissions.
+        This is due to the fact that these sections are "unnatural" in Windows.
+        However, `hyperstone` doesn't prevent `WX` sections and allows them to be loaded as intended
+    """
     access = ms.AccessType.NONE
     if section.has_characteristic(lief.PE.Section.CHARACTERISTICS.MEM_READ):
         access |= ms.AccessType.R
@@ -238,6 +252,7 @@ class PELoader(Plugin):
     def missing_iat(self, name: str, callback: HyperstoneCallback) -> Self:
         """
         Put a hook on a IAT entry that wasn't loaded
+
         Args:
             name: The name of the IAT entry, for example (KERNEL32.DLL!LoadLibraryA)
             callback: The callback function to use
@@ -305,9 +320,9 @@ class PELoader(Plugin):
         """
         Checks if the given address is unmapped
 
-        Vars:
+        Args:
             address: Address to check
-            obj: PE file to check
+            obj_virtual_size: PE file to check
 
         Returns:
             True if unmapped, False otherwise

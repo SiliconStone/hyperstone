@@ -8,7 +8,7 @@ from hyperstone.plugins.base import Plugin
 from hyperstone.emulator import HyperEmu
 from hyperstone.exceptions import HSHookAlreadyRemovedError
 from hyperstone.util.logger import log
-from hyperstone.plugins.hooks.context import Context, DictContext
+from hyperstone.util.context import Context, DictContext
 
 
 HookFunc = Callable[[HyperEmu], Any]
@@ -159,7 +159,7 @@ class Hook(Plugin):
         Args:
             hook: The hook to register
         """
-        hook.ctx.hook = self.add_hook(hook, ms.HookType.CODE)
+        self.add_hook(hook, ms.HookType.CODE)
 
     def add_hook(self, hook: HookInfo,
                  access_type: ms.HookType) -> ActiveHook:
@@ -179,9 +179,9 @@ class Hook(Plugin):
         """
         if hook.name.startswith(Hook.SILENT):
             hook.silent = True
-
         ms_hook = self.emu.add_hook(partial(Hook._hook, hook.ctx), access_type, hook.address, hook.size)
         active = ActiveHook(hook, ms_hook)
+        hook.ctx.hook = active
         self._hooks.append(active)
         log.info(f'Added hook {hook.name}')
         return active

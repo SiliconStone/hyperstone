@@ -6,6 +6,15 @@ from hyperstone.util.logger import log
 
 
 class Entrypoint(RunnerPlugin):
+    """
+    Entrypoint for the emulator. Allows specifying an initial `PC` value.
+    This is the most basic `RunnerPlugin`.
+
+    Supports `LazyResolver`s
+
+    Notes:
+        - interact() does nothing in this plugin, as it is only useful as a RunnerPlugin (supplies run())
+    """
     def _handle(self, obj: Any):
         pass
 
@@ -14,6 +23,10 @@ class Entrypoint(RunnerPlugin):
         self.entrypoint = entrypoint
 
     def _run_emu(self):
+        """
+        A method to run the emulator from a given entrypoint.
+        A better plugin may override this method for a simpler, unified implementation.
+        """
         self.emu.run(address=int(self.entrypoint))
 
     def _run(self):

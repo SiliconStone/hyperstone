@@ -1,4 +1,4 @@
-from hyperstone.plugins.hooks.context import DictContext
+from hyperstone.util.context import DictContext
 from typing import TYPE_CHECKING
 
 import megastone as ms

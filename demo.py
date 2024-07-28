@@ -15,7 +15,7 @@ EVIL_FUNCTION_ADDR = 0x08000100
 SIMPLE_SETTINGS = [
     SEGMENTS,
 
-    hs.plugins.memory.InitializeSupportStack(support_base=0x10000000),  # We use the default support addr already
+    hs.plugins.memory.InitializeSupportStack(),
 
     hs.plugins.memory.StreamMapper(
         StreamMapperInfo(

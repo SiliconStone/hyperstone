@@ -50,8 +50,8 @@ class Settings(hs.Settings):
     MALLOC2__R0__NAME_USER = BASE + 0x100 * 6
     MALLOC3__R0__CTX = BASE + 0x100 * 7
 
-    FUNCTIONS_NULLSUB = [MALLOC1__R0, MALLOC2__R0, MALLOC1__R1, MALLOC2__R1, MALLOC2__R0__NAME_R1,
-                         MALLOC2__R0__NAME_USER, MALLOC3__R0__CTX]
+    _FUNCTIONS_NULLSUB = [MALLOC1__R0, MALLOC2__R0, MALLOC1__R1, MALLOC2__R1, MALLOC2__R0__NAME_R1,
+                          MALLOC2__R0__NAME_USER, MALLOC3__R0__CTX]
 
     _DBG = hs.plugins.hooks.CallTrace()
 
@@ -180,8 +180,8 @@ class Settings(hs.Settings):
         )
     )
 
-    _STUB_HOOKCALLS = hs.plugins.hooks.FunctionNullsub(
-        *(FunctionNullsubInfo(address) for address in FUNCTIONS_NULLSUB)
+    STUB_HOOKCALLS = hs.plugins.hooks.FunctionNullsub(
+        *(FunctionNullsubInfo(address) for address in _FUNCTIONS_NULLSUB)
     )
 
     RUN_BASE = hs.plugins.runners.FunctionEntrypoint(BASE)
@@ -195,6 +195,7 @@ def main():
     Note that by default Hyperstone's Hook plugin always passes the emulator and a designated context object,
     This is just an abstraction layer above it.
     """
+    print(repr(Settings))
     hs.start(ms.ARCH_ARM, Settings)
 
 

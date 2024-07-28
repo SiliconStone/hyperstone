@@ -1,3 +1,14 @@
+"""
+This module is a legacy implementation and may be removed in a future release.
+Please do not use this.
+Use calls instead, it's much better.
+Please
+I'm begging you
+
+See Also:
+    `hyperstone.calls`
+"""
+
 from abc import abstractmethod
 from typing import Any, List, Type
 

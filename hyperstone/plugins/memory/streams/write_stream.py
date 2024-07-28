@@ -6,6 +6,7 @@ from hyperstone.util.logger import log
 class StreamWriter(Plugin):
     """
     Generic stream writer plugin.
+    This plugin allows writing streams to the hyperstone memory.
     """
     def __init__(self, *args: Stream):
         super().__init__(*args)
