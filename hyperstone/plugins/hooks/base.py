@@ -51,7 +51,6 @@ class HookInfo:
     size: int = 1
     ctx: KC = field(default_factory=DictContext)
     silent: bool = False
-    double_call: bool = False
 
     _address: Union[int, Callable[[], int]] = field(init=False, repr=False)
 
@@ -219,18 +218,12 @@ class Hook(Plugin):
         hook_info = hook_ctx.hook.info
         hook_ctx.emu = emu
 
-        if hook_info.return_address is None:
-            was_called = hook_info.double_call
-            hook_info.double_call = False
-            if was_called:
-                return
-        else:
+        if hook_info.return_address is not None:
             hook_info.return_address = int(hook_info.return_address)
 
         log_fn = log.trace if hook_info.silent else log.debug
 
         log_fn(f'Hook - {hook_info.name} [PC = 0x{emu.pc:08X}, RET = 0x{emu.retaddr:08X}]')
-        old_pc = emu.pc
         func = hook_info.callback
         if func:
             try:
@@ -240,5 +233,3 @@ class Hook(Plugin):
 
         if hook_info.return_address is not None:
             emu.pc = hook_info.return_address
-        elif old_pc == emu.pc:
-            hook_info.double_call = not hook_info.double_call
