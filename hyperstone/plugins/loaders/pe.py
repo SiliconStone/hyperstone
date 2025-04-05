@@ -33,6 +33,7 @@ class PELoaderInfo:
         base: An optional base address for the PE file
         prefer_aslr: Should we try to map with ASLR enabled?
         map_sections_rwx: Should map the header as RWX?
+        hook_missing_iat: Do we want to hook (and handle) missing IATs?
         fake: Is a fake DLL (instead of a real file)?
     """
 
@@ -40,6 +41,7 @@ class PELoaderInfo:
     base: Optional[int] = None
     prefer_aslr: bool = False
     map_header_rwx: bool = False
+    hook_missing_iat: bool = True
     fake: bool = False
 
     @property
@@ -216,6 +218,7 @@ class PELoader(Plugin):
         self._stream_mapper: Optional[StreamMapper] = None
         self._enforce_plugin: Optional[EnforceMemory] = None
         self._hook_plugin: Optional[Hook] = None
+        self._warned_about_hook_plugin: bool = False
 
         super().__init__(*files)
 
@@ -311,10 +314,11 @@ class PELoader(Plugin):
             self._map_section(section, mapped)
 
         # Import table
-        self._handle_iats(mapped)
+        self._handle_iats(mapped, obj)
 
         # Apply relocations
-        self._handle_reloc(mapped)
+        if parsed.imagebase != base_address:
+            self._handle_reloc(mapped)
 
     def is_base_ok(self, address: int, obj_virtual_size: int) -> bool:
         """
@@ -463,7 +467,7 @@ class PELoader(Plugin):
                 )
             )
 
-    def _handle_iats(self, mapped: MappedPE):
+    def _handle_iats(self, mapped: MappedPE, info: PELoaderInfo):
         if not self.ready:
             raise HSPluginInteractNotReadyError(f'{mapped.info=}')
 
@@ -475,6 +479,7 @@ class PELoader(Plugin):
 
             for loaded in self._loaded.copy():
                 if dependency.name.lower() not in loaded:
+                    # If we have the dependency planned to be loaded we shall load it now
                     for item in self._interact_queue:
                         item: PELoaderInfo
                         if file_to_name(dependency.name) in item.name:
@@ -482,14 +487,19 @@ class PELoader(Plugin):
                             loaded_item = self._loaded[item.name]
                             break
                 else:
+                    # Oh! we already loaded it
                     loaded_item = self._loaded[loaded]
                     break
             else:
                 if loaded_item is None:
+                    # Okay, we weren't planning on loading this
                     if file_to_name(dependency.name) in self._available_pes:
+                        # Oh! We actually know this DLL! we have it in our search path
+                        # Since the user didn't want us to load the entire DLL, let's just load its import / export
+                        # Sections.
                         phantomized = self.__phantomize_dll(file_to_name(dependency.name))
                         self._handle_binary(
-                            PELoaderInfo(dependency.name, prefer_aslr=True),
+                            PELoaderInfo(dependency.name, prefer_aslr=True, hook_missing_iat=info.hook_missing_iat),
                             phantomized,
                         )
                         loaded_item = self._loaded[file_to_name(dependency.name)]
@@ -497,7 +507,8 @@ class PELoader(Plugin):
                         log.warning(
                             f'IAT dependency {dependency.name} for {mapped.info} not found.'
                         )
-                        self._handle_missing_iat(dependency, mapped)
+                        if info.hook_missing_iat:
+                            self._handle_missing_iat(dependency, mapped)
                         continue
 
             self._load_iat(mapped, dependency, loaded_item)
@@ -528,7 +539,27 @@ class PELoader(Plugin):
             )
 
     def _handle_missing_iat(self, dependency: lief.PE.Import, mapped: MappedPE):
+        """
+        This function is used when we have a dependency that wasn't supplied
+        Since we don't have actual code to run, we'll have to make a section to jump to and do something else in there
+        What we want to do is to make a fake dll that is just an array of callbacks, that way the user can hook them.
+        Note that this feature is needed to support "Python" DLLs, see plugins.hooks.fake_dll for more info.
+
+        Args:
+            dependency: The import we're faking
+            mapped: Our mapped PE
+        """
+        if self._hook_plugin is None:
+            if not self._warned_about_hook_plugin:
+                log.error(
+                    "No Hook plugin was loaded in the current project. "
+                    "Please load one if you want to use IAT hooks feature"
+                )
+                self._warned_about_hook_plugin = True
+            return
+
         if dependency.name not in self._fake_exports:
+            # Save our new "fake dll"
             self._fake_exports[dependency.name] = FakeExport()
             self._fake_exports[dependency.name].base = self.map_fake_dll(
                 dependency, mapped
@@ -551,31 +582,28 @@ class PELoader(Plugin):
                 self._fake_exports[dependency.name].functions[entry.name],
             )
 
-            if self._hook_plugin is not None:
-                self._hook_plugin.interact(
-                    HookInfo(
-                        f'IAT{self._IAT_HOOK_SEP}{dependency.name}!{entry.name}',
-                        self._fake_exports[dependency.name].functions[entry.name],
-                        None,
-                        self._phantom_hook_callback,
-                    )
+            self._hook_plugin.interact(
+                HookInfo(
+                    f'IAT{self._IAT_HOOK_SEP}{dependency.name}!{entry.name}',
+                    self._fake_exports[dependency.name].functions[entry.name],
+                    None,
+                    self._phantom_hook_callback,
                 )
-            else:
-                log.error(
-                    "No Hook plugin was loaded in the current project. "
-                    "Please load one if you want to use IAT hooks feature"
-                )
+            )
 
     def map_fake_dll(self, dependency: lief.PE.Import, mapped: MappedPE) -> int:
         parsed = mapped.pe
-        retry = 5
         base = 0
+        attempts = 0
         is64 = parsed.optional_header.has(
             lief.PE.OptionalHeader.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA
         )
-        while (not self.is_base_ok(base, parsed.virtual_size)) and retry > 0:
-            retry -= 1
+        while not self.is_base_ok(base, parsed.virtual_size):
+            attempts += 1
             base = calculate_aslr(is64, True)
+            if attempts % 10000 == 0:
+                log.warning(f"Finding a base for fake DLL {dependency.name} is very difficult. Consider setting "
+                            f"PELoaderInfo.hook_missing_iat = False. Attempts: {attempts}")
 
         self._segment_plugin.interact(
             SegmentInfo(
@@ -603,7 +631,6 @@ class PELoader(Plugin):
                 self.emu.mem.write_word(reloc_offset, old_val - parsed.imagebase + base)
 
     def _phantom_hook_callback(self, ctx: Context):
-
         hook: ActiveHook = ctx.hook
         hook_fn = hook.info.name.split(self._IAT_HOOK_SEP)[-1]
 
