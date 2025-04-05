@@ -1,3 +1,4 @@
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 
@@ -16,6 +17,9 @@ class FileStream(Stream):
     """
     filepath: str
     base: Optional[int] = None
+
+    def length(self, _: HyperEmu) -> int:
+        return Path(self.filepath).stat().st_size
 
     def raw(self, _: HyperEmu) -> bytes:
         with open(self.filepath, 'rb') as f:

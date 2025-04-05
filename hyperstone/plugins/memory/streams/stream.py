@@ -26,6 +26,9 @@ class Stream:
     def base(self, value: Optional[int]):
         self._base = value
 
+    def length(self, _: HyperEmu) -> int:
+        return len(self.raw(_))
+
     @staticmethod
     def raw(_: HyperEmu) -> bytes:
         """The stream as a sequence of bytes."""
