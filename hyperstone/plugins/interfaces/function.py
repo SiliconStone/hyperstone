@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any, Type
 
 from hyperstone.plugins.base import Plugin, RunnerPlugin
-from hyperstone.plugins.runners import FunctionEntrypoint
+from hyperstone.plugins.runners import FunctionEntrypoint, Entrypoint
 from hyperstone.calls.base import CallingConvention
 from hyperstone.exceptions import HyperstonePluginError, HSPluginInteractNotReadyError
 from hyperstone.util.logger import log
@@ -83,9 +83,17 @@ class ExportedCaller:
         emu = self._parent.emu
         runner = Plugin.require(self._runner, emu)
 
+        idx = 0
+        negative_idx = -1
         for i, param in enumerate(self._function.convention):
             if len(args) == i:
                 break
+            if param.is_reversed:
+                i = negative_idx
+                negative_idx -= 1
+            else:
+                i = idx
+                idx += 1
             param.set(emu, args[i])
 
         runner.entrypoint = self._function.address

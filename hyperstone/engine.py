@@ -3,6 +3,7 @@ import megastone as ms
 
 from hyperstone.emulator import HyperEmu
 from hyperstone.plugins.base import RunnerPlugin
+from hyperstone.plugins.memory import InitializeSupportStack
 from hyperstone.settings import SettingsType
 from hyperstone.util.logger import log
 
@@ -23,6 +24,7 @@ def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Op
     emu = HyperEmu(arch, settings)
 
     runner = None
+    has_stack = False
     for plugin in settings:
         log.debug(f'Preparing plugin {plugin}...')
         plugin.prepare(emu)
@@ -30,6 +32,12 @@ def prepare(arch: ms.Architecture, settings: SettingsType) -> Tuple[HyperEmu, Op
             if runner:
                 log.error(f'Found two runner plugins ({runner} and {plugin}), Using [{plugin}]')
             runner = plugin
+        if isinstance(plugin, InitializeSupportStack):
+            has_stack = True
+
+    if not has_stack:
+        log.warning('InitializeSupportStack plugin was not found. hyperstone will run with no stack mapped. '
+                    'Might result in buggy behaviour.')
 
     return emu, runner
 

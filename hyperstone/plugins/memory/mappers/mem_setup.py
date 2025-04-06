@@ -27,10 +27,10 @@ class InitializeSupportStack(Plugin):
     HYPERSTONE_SUPPORT_NAME = '[hyperstone heap]'
     HYPERSTONE_STACK_NAME = 'stack'
 
-    SUPPORT_BASE = 0x80000000
-    SUPPORT_SIZE = 0x8000
-    STACK_BASE = 0x7e000000
-    STACK_SIZE = 0x8000
+    SUPPORT_BASE = 0x80_00_00_00
+    SUPPORT_SIZE = 0x1_0000
+    STACK_BASE = 0x7e00_0000
+    STACK_SIZE = 0x0100_0000
     STACK_BACKPADDLE = 0x100
 
     def _handle(self, obj: Any):

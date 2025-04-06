@@ -30,15 +30,30 @@ class CallingConvention:
         def call_wrapper(ctx: Context):
             amount = arg_amount
             params = [ctx]
+            end_params = []
+            cleanup_args = []
 
             for arg in iter(self):
                 if amount <= 0:
                     break
+                if arg.is_reversed:
+                    end_params.insert(0, arg.get(ctx.emu))
+                else:
+                    params.append(arg.get(ctx.emu))
 
-                params.append(arg.get(ctx.emu))
+                if arg.needs_cleanup:
+                    cleanup_args.append(arg)
                 amount -= 1
+
+            params += end_params
+            del end_params
+
             log.trace(f'calling {function}')
             retval = function(*params, *args, **kwargs)
+
+            for arg in cleanup_args:
+                arg.cleanup(ctx.emu)
+
             log.trace(f'returned {retval}')
             return retval
 
@@ -46,11 +61,17 @@ class CallingConvention:
 
     def argcount(self, function: Callable) -> int:
         func_call = function
+
+        if hasattr(func_call, '__wrapped__'):
+            func_call = func_call.__wrapped__
+
         if not inspect.isroutine(func_call):
-            # Usually means __call__ override.
+            # Usually means __call__ override, OR a __wrapped__ object.
             # Since argument is Callable, it means we have __call__
-            # noinspection PyUnresolvedReferences
-            func_call = func_call.__call__
+            if hasattr(func_call, '__call__'):
+                func_call = func_call.__call__
+            else:
+                raise ValueError(f'No clue how to resolve the code object for {func_call}')
 
         func_code: types.CodeType = func_call.__code__
 
