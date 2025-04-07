@@ -1,4 +1,7 @@
+from megastone.emulator import STACK_NAME, RET_FLAG_NAME
 from typing import Any
+
+import megastone as ms
 
 from hyperstone.plugins.memory.mappers.map_segment import Segment, SegmentInfo
 from hyperstone.plugins.base import Plugin
@@ -17,6 +20,11 @@ class InitializeSupportStack(Plugin):
         [hyperstone heap]:
             Internal hyperstone "heap", usually not used by most programs. Maps a memory segment that allows the user
             to allocate mock objects, see `support_malloc()`
+        ret_flag:
+            A 1 (max sized) word segment usually allocated by megastone when using `Emulator.run_function()`
+            Execution in this segment counts as a "soft-halt", stopping the emulator without any errors
+            It is worth noting that allocating this segment via hyperstone allows for a more "transparent" segment
+            mapping.
 
     Notes:
         The primary reason this crucial plugin is implemented as a plugin and not as a builtin feature is to keep
@@ -25,12 +33,15 @@ class InitializeSupportStack(Plugin):
         objects such as the global context)
     """
     HYPERSTONE_SUPPORT_NAME = '[hyperstone heap]'
-    HYPERSTONE_STACK_NAME = 'stack'
+    HYPERSTONE_STACK_NAME = STACK_NAME
+    HYPERSTONE_RET_FLAG_NAME = RET_FLAG_NAME
 
     SUPPORT_BASE = 0x80_00_00_00
     SUPPORT_SIZE = 0x1_0000
     STACK_BASE = 0x7e00_0000
     STACK_SIZE = 0x0100_0000
+    RET_FLAG_BASE = 0x1000  # Small enough to work even in 16 bit arches, usually this is the megastone address given
+    RET_FLAG_SIZE = 0x10  # max word, might not work with some architectures, in that case this should be overridden
     STACK_BACKPADDLE = 0x100
 
     def _handle(self, obj: Any):
@@ -41,7 +52,9 @@ class InitializeSupportStack(Plugin):
                  support_size: int = SUPPORT_SIZE,
                  stack_base: int = STACK_BASE,
                  stack_size: int = STACK_SIZE,
-                 stack_backpaddle: int = STACK_BACKPADDLE):
+                 stack_backpaddle: int = STACK_BACKPADDLE,
+                 ret_flag_base: int = RET_FLAG_BASE,
+                 ret_flag_size: int = RET_FLAG_SIZE):
         super().__init__()
         self.support_segment = SegmentInfo(
             InitializeSupportStack.HYPERSTONE_SUPPORT_NAME,
@@ -53,6 +66,12 @@ class InitializeSupportStack(Plugin):
             stack_base,
             stack_size,
         )
+        self.ret_flag_segment = SegmentInfo(
+            InitializeSupportStack.HYPERSTONE_RET_FLAG_NAME,
+            ret_flag_base,
+            ret_flag_size,
+            perms=ms.AccessType.X
+        )
         self.support_free = None
         self.stack_backpaddle = stack_backpaddle
 
@@ -60,7 +79,7 @@ class InitializeSupportStack(Plugin):
         segments = Plugin.require(Segment, self.emu)
 
         segments.prepare(self.emu)  # We need it instantly in order to init the sp for megastone
-        segments.interact(self.support_segment, self.stack_segment)
+        segments.interact(self.support_segment, self.stack_segment, self.ret_flag_segment)
 
         self.support_free = self.support_segment.address
         self.emu.reset_sp()

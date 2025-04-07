@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Optional, List
+from typing import Optional, List, Iterator
 
 import megastone as ms
 
@@ -22,6 +22,9 @@ class SegmentInfo:
         size:
             The size in bytes of the segment. Note that if size is `None`, then some plugins might try to resolve
             the size of the segment. Note that the `Segment` plugin will error if given a `None` sized segment.
+        perms:
+            Permissions for the segment. Default to RWX, note that these are "Hardware" permissions. Some plugins might
+            require it to be set to RWX in order to enforce permissions in a different way.
     """
     name: str
     address: int
@@ -36,7 +39,19 @@ class Segment(Plugin):
     def __init__(self, *segments: SegmentInfo):
         super().__init__(*segments)
         self._mapped_info = []
-        self._segments: List[ms.Segment] = []
+
+    def _prepare(self):
+        """
+        This is used to re-register segments that were already mapped via pure megastone.
+        """
+        for segment in self.emu.mem.segments:
+            if segment.name not in self:
+                log.info(f'Found a megastone only segment: {segment.name}, adding it to our records.')
+                self._mapped_info.append(SegmentInfo(name=segment.name,
+                                                     address=segment.address,
+                                                     size=segment.size,
+                                                     perms=segment.perms))
+
 
     def _handle(self, seg: SegmentInfo):
         """
@@ -55,7 +70,7 @@ class Segment(Plugin):
             raise HSPluginInteractionError(f'Segment {seg} has no size.')
 
         log.debug(f'Mapping segment {seg.name}: {seg}')
-        self._segments.append(self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms))
+        self.emu.mem.map(seg.address, seg.size, seg.name, seg.perms)
         self._mapped_info.append(seg)
 
     def mapped(self, name: str) -> ms.Segment:
@@ -71,11 +86,10 @@ class Segment(Plugin):
         Raises:
             KeyError: if there is no mapped (`megastone`) segment with that name.
         """
-        for seg in self._segments:
-            if seg.name == name:
-                return seg
+        return self.emu.mem.segments[name]
 
-        raise KeyError(f'Segment {name} not mapped')
+    def __iter__(self) -> Iterator[SegmentInfo]:
+        return iter(self._mapped_info)
 
     def __getitem__(self, name: str) -> SegmentInfo:
         """

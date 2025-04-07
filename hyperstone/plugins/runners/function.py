@@ -12,7 +12,7 @@ class FunctionEntrypoint(Entrypoint):
     """
     def _run_emu(self):
         sp = self.emu.sp
-        self.emu.stack.pop()  # Allocate a spot for the push that is done via megastone's run_function()
+        self.emu.sp += self.emu.arch.word_size  # Allocate a spot for the push that is done via megastone's run_function()
         try:
             self.emu.run_function(int(self.entrypoint))
             self.emu.sp = sp  # To keep the stack sane (the pushed value will be popped via callee)
