@@ -11,6 +11,11 @@ class FunctionEntrypoint(Entrypoint):
         and when the emulator runs in this execute-only segment, the emulator will stop execution.
     """
     def _run_emu(self):
+        sp = self.emu.sp
         self.emu.stack.pop()  # Allocate a spot for the push that is done via megastone's run_function()
-        self.emu.run_function(int(self.entrypoint))
-        self.emu.stack.push(0)  # To keep the stack sane (the pushed value will be popped via callee)
+        try:
+            self.emu.run_function(int(self.entrypoint))
+            self.emu.sp = sp  # To keep the stack sane (the pushed value will be popped via callee)
+            # try-finally block to not catch an exception but to restore SP only if no exception was caught
+        finally:
+            pass
